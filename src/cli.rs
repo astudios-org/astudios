@@ -33,7 +33,7 @@ pub enum Commands {
         limit: Option<usize>,
     },
 
-    /// Install a specific Android Studio version
+    /// Install a specific Android Studio version to ~/.as-man/versions and /Applications
     Install {
         /// Version to install (e.g., "2023.1.1")
         version: String,

@@ -1,5 +1,7 @@
 use crate::api::ApiClient;
+use crate::app_installer::AppInstaller;
 use crate::cli::{Cli, Commands};
+use crate::installer::Installer;
 use crate::model::Item;
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -124,8 +126,12 @@ impl CommandHandler {
         println!();
     }
 
-    fn handle_install(_version: &str) -> Result<(), Box<dyn Error>> {
-        println!("{} Install command not yet implemented", "⚠".yellow());
+    fn handle_install(version: &str) -> Result<(), Box<dyn Error>> {
+        let installer = Installer::new()?;
+        installer.install_version(version)?;
+        
+        let app_installer = AppInstaller::new()?;
+        app_installer.install_application(version)?;
         Ok(())
     }
 
@@ -134,18 +140,21 @@ impl CommandHandler {
         Ok(())
     }
 
-    fn handle_use(_version: &str) -> Result<(), Box<dyn Error>> {
-        println!("{} Use command not yet implemented", "⚠".yellow());
+    fn handle_use(version: &str) -> Result<(), Box<dyn Error>> {
+        let app_installer = AppInstaller::new()?;
+        app_installer.switch_to_version(version)?;
         Ok(())
     }
 
     fn handle_installed() -> Result<(), Box<dyn Error>> {
-        println!("{} Installed command not yet implemented", "⚠".yellow());
+        let app_installer = AppInstaller::new()?;
+        app_installer.list_installed_versions()?;
         Ok(())
     }
 
     fn handle_which() -> Result<(), Box<dyn Error>> {
-        println!("{} Which command not yet implemented", "⚠".yellow());
+        let app_installer = AppInstaller::new()?;
+        app_installer.show_current_version()?;
         Ok(())
     }
 

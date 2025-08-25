@@ -1,6 +1,8 @@
 mod api;
+mod app_installer;
 mod cli;
 mod commands;
+mod installer;
 mod model;
 
 use clap::Parser;
