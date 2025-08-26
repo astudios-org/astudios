@@ -35,8 +35,16 @@ pub enum Commands {
 
     /// Install a specific Android Studio version to ~/.as-man/versions and /Applications
     Install {
-        /// Version to install (e.g., "2023.1.1")
-        version: String,
+        /// Version to install (e.g., "2024.3.2.14", "Android Studio Meerkat Feature Drop", "2023.3.1 Canary 8")
+        version: Option<String>,
+
+        /// Install the latest available version
+        #[arg(long)]
+        latest: bool,
+
+        /// Custom installation directory (default: /Applications)
+        #[arg(long, short)]
+        directory: Option<String>,
     },
 
     /// Uninstall a specific Android Studio version

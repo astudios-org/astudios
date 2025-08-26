@@ -1,5 +1,4 @@
 mod api;
-mod app_installer;
 mod cli;
 mod commands;
 mod installer;
@@ -12,7 +11,7 @@ fn main() {
     let cli = cli::Cli::parse();
 
     if let Err(e) = CommandHandler::handle(cli) {
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {e}");
         std::process::exit(1);
     }
 }
