@@ -1,5 +1,5 @@
 use crate::api::ApiClient;
-use crate::model::Item;
+use crate::model::AndroidStudio;
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
@@ -81,7 +81,7 @@ impl Installer {
 
     fn get_platform_download<'a>(
         &self,
-        item: &'a Item,
+        item: &'a AndroidStudio,
     ) -> Result<&'a crate::model::Download, Box<dyn std::error::Error>> {
         #[cfg(target_os = "macos")]
         let download = item
@@ -112,10 +112,10 @@ impl Installer {
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(300))
             .build()?;
-            
+
         let mut response = client.get(url).send()?;
         let total_size = response.content_length().unwrap_or(0);
-        
+
         let pb = if total_size > 0 {
             let pb = ProgressBar::new(total_size);
             pb.set_style(
@@ -134,11 +134,11 @@ impl Installer {
             );
             pb
         };
-        
+
         let mut file = fs::File::create(destination)?;
         let mut downloaded = 0u64;
         let mut buf = [0u8; 8192];
-        
+
         loop {
             let n = response.read(&mut buf)?;
             if n == 0 {
@@ -148,9 +148,9 @@ impl Installer {
             downloaded += n as u64;
             pb.set_position(downloaded);
         }
-        
+
         pb.finish_and_clear();
-        
+
         Ok(())
     }
 
@@ -159,15 +159,16 @@ impl Installer {
         archive_path: &Path,
         destination: &Path,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let file_name = archive_path.file_name()
+        let file_name = archive_path
+            .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("");
-        
+
         let extension = archive_path
             .extension()
             .and_then(|e| e.to_str())
             .unwrap_or("");
-        
+
         // Determine archive type based on full filename
         let archive_type = if file_name.ends_with(".tar.gz") || file_name.ends_with(".tgz") {
             "tar.gz"
@@ -180,9 +181,9 @@ impl Installer {
         } else {
             extension
         };
-        
+
         println!("{} Detected archive type: {}", "📦".blue(), archive_type);
-        
+
         match archive_type {
             "zip" => self.extract_zip(archive_path, destination)?,
             "tar.gz" | "tgz" => self.extract_tar_gz(archive_path, destination)?,
@@ -190,10 +191,10 @@ impl Installer {
             "dmg" => self.extract_dmg(archive_path, destination)?,
             _ => return Err(format!("Unsupported archive format: {}", archive_type).into()),
         }
-        
+
         // Verify installation
         self.verify_installation(destination)?;
-        
+
         Ok(())
     }
 
@@ -236,12 +237,12 @@ impl Installer {
         destination: &Path,
     ) -> Result<(), Box<dyn std::error::Error>> {
         println!("{} Extracting DMG archive...", "📦".blue());
-        
+
         // For macOS, we'll use the system tools to extract DMG
         // First, try using hdiutil to mount the DMG
         let temp_mount = tempfile::tempdir()?;
         let mount_point = temp_mount.path();
-        
+
         let status = std::process::Command::new("hdiutil")
             .args([
                 "attach",
@@ -249,23 +250,21 @@ impl Installer {
                 "-mountpoint",
                 mount_point.to_str().unwrap(),
                 "-nobrowse",
-                "-quiet"
+                "-quiet",
             ])
             .status()?;
-            
+
         if !status.success() {
             return Err("Failed to mount DMG".into());
         }
-        
+
         // Find the app bundle in the mounted DMG
         let app_paths: Vec<PathBuf> = fs::read_dir(mount_point)?
             .filter_map(|entry| entry.ok())
-            .filter(|entry| {
-                entry.file_name().to_string_lossy().ends_with(".app")
-            })
+            .filter(|entry| entry.file_name().to_string_lossy().ends_with(".app"))
             .map(|entry| entry.path())
             .collect();
-        
+
         if app_paths.is_empty() {
             // Unmount the DMG
             std::process::Command::new("hdiutil")
@@ -273,33 +272,38 @@ impl Installer {
                 .status()?;
             return Err("No .app bundle found in DMG".into());
         }
-        
+
         // Copy the app bundle to destination
         for app_path in app_paths {
             let app_name = app_path.file_name().unwrap();
             let dest_path = destination.join(app_name);
-            
-            println!("{} Copying {:?} to {:?}", "📁".blue(), app_name, destination);
-            
+
+            println!(
+                "{} Copying {:?} to {:?}",
+                "📁".blue(),
+                app_name,
+                destination
+            );
+
             // Use rsync or cp for copying app bundles
             let status = std::process::Command::new("cp")
                 .args([
                     "-R",
                     app_path.to_str().unwrap(),
-                    dest_path.to_str().unwrap()
+                    dest_path.to_str().unwrap(),
                 ])
                 .status()?;
-            
+
             if !status.success() {
                 return Err("Failed to copy app bundle".into());
             }
         }
-        
+
         // Unmount the DMG
         std::process::Command::new("hdiutil")
             .args(["detach", mount_point.to_str().unwrap(), "-quiet"])
             .status()?;
-        
+
         Ok(())
     }
 
@@ -324,36 +328,33 @@ impl Installer {
         destination: &Path,
     ) -> Result<(), Box<dyn std::error::Error>> {
         println!("{} Extracting TAR.GZ archive...", "📦".blue());
-        
+
         let file = fs::File::open(archive_path)?;
         let tar = flate2::read::GzDecoder::new(file);
         let mut archive = tar::Archive::new(tar);
-        
+
         archive.unpack(destination)?;
-        
+
         Ok(())
     }
 
-    fn verify_installation(
-        &self,
-        destination: &Path,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    fn verify_installation(&self, destination: &Path) -> Result<(), Box<dyn std::error::Error>> {
         println!("{} Verifying installation...", "🔍".blue());
-        
+
         let mut found = false;
-        
+
         if let Ok(entries) = fs::read_dir(destination) {
             for entry in entries.filter_map(|e| e.ok()) {
                 let name = entry.file_name();
                 let name_str = name.to_string_lossy();
-                
+
                 // Check for Android Studio app bundle (macOS)
                 if name_str.contains("Android Studio.app") {
                     println!("{} Found Android Studio.app", "✅".green());
                     found = true;
                     break;
                 }
-                
+
                 // Check for android-studio directory (Linux/Windows)
                 if name_str.contains("android-studio") {
                     let studio_dir = entry.path();
@@ -365,7 +366,7 @@ impl Installer {
                 }
             }
         }
-        
+
         if !found {
             // List what was actually extracted
             if let Ok(entries) = fs::read_dir(destination) {
@@ -373,18 +374,21 @@ impl Installer {
                     .filter_map(|e| e.ok())
                     .map(|e| e.file_name().to_string_lossy().to_string())
                     .collect();
-                
+
                 if items.is_empty() {
                     return Err("No files were extracted".into());
                 } else {
                     println!("{} Extracted files: {}", "📋".yellow(), items.join(", "));
                 }
             }
-            
+
             // Don't fail, just warn - the user might need to move files manually
-            println!("{} Android Studio installation files may need manual arrangement", "⚠".yellow());
+            println!(
+                "{} Android Studio installation files may need manual arrangement",
+                "⚠".yellow()
+            );
         }
-        
+
         Ok(())
     }
 }

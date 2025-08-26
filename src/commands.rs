@@ -2,7 +2,7 @@ use crate::api::ApiClient;
 use crate::app_installer::AppInstaller;
 use crate::cli::{Cli, Commands};
 use crate::installer::Installer;
-use crate::model::{Content, Item};
+use crate::model::{AndroidStudio, Content};
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::error::Error;
@@ -85,18 +85,18 @@ impl CommandHandler {
         let cache_dir = dirs::cache_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("as-man");
-        
+
         fs::create_dir_all(&cache_dir)?;
-        
+
         let cache_path = cache_dir.join("releases.json");
         let cache_duration = Duration::from_secs(60 * 60); // 1 hour cache
-        
+
         // Check if cache exists and is valid
         if cache_path.exists() {
             let metadata = fs::metadata(&cache_path)?;
             let modified = metadata.modified()?;
             let age = SystemTime::now().duration_since(modified)?;
-            
+
             if age < cache_duration {
                 // Use cached data
                 println!("{} Using cached version list", "💾".blue());
@@ -105,20 +105,20 @@ impl CommandHandler {
                 return Ok(content);
             }
         }
-        
+
         // Fetch fresh data
         println!("{} Fetching latest releases from JetBrains...", "🔄".blue());
         let client = ApiClient::new()?;
         let content = client.fetch_releases()?;
-        
+
         // Cache the data
         let data = serde_json::to_string_pretty(&content)?;
         fs::write(&cache_path, data)?;
-        
+
         Ok(content)
     }
 
-    fn print_version_info(item: &Item) {
+    fn print_version_info(item: &AndroidStudio) {
         let channel_color = match item.channel.as_str() {
             "Release" => "Release".green(),
             "Beta" => "Beta".yellow(),
@@ -169,7 +169,7 @@ impl CommandHandler {
     fn handle_install(version: &str) -> Result<(), Box<dyn Error>> {
         let installer = Installer::new()?;
         installer.install_version(version)?;
-        
+
         let app_installer = AppInstaller::new()?;
         app_installer.install_application(version)?;
         Ok(())
@@ -201,27 +201,38 @@ impl CommandHandler {
 
     fn handle_update() -> Result<(), Box<dyn Error>> {
         println!("{} Updating Android Studio version list...", "🔄".blue());
-        
+
         // Fetch fresh releases from JetBrains
         let content = crate::api::ApiClient::new()?.fetch_releases()?;
-        
-        println!("{} Found {} available versions", "✅".green(), content.items.len());
-        
+
+        println!(
+            "{} Found {} available versions",
+            "✅".green(),
+            content.items.len()
+        );
+
         // Show the latest few versions
         let latest_versions: Vec<_> = content.items.iter().take(5).collect();
-        
+
         if !latest_versions.is_empty() {
             println!();
             println!("{} Latest versions:", "📋".bold());
             for item in latest_versions {
-                println!("  {} - {} ({})", 
-                    item.version.green(), 
-                    item.build, 
-                    if item.is_beta() { "Beta".yellow() } else if item.is_canary() { "Canary".red() } else { "Release".normal() }
+                println!(
+                    "  {} - {} ({})",
+                    item.version.green(),
+                    item.build,
+                    if item.is_beta() {
+                        "Beta".yellow()
+                    } else if item.is_canary() {
+                        "Canary".red()
+                    } else {
+                        "Release".normal()
+                    }
                 );
             }
         }
-        
+
         Ok(())
     }
 }

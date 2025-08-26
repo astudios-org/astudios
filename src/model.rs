@@ -5,11 +5,11 @@ pub struct Content {
     #[serde(rename = "@version")]
     pub version: String,
     #[serde(rename = "item")]
-    pub items: Vec<Item>,
+    pub items: Vec<AndroidStudio>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Item {
+pub struct AndroidStudio {
     pub name: String,
     pub build: String,
     pub version: String,
@@ -30,7 +30,7 @@ pub struct Download {
     pub checksum: String,
 }
 
-impl Item {
+impl AndroidStudio {
     pub fn is_release(&self) -> bool {
         self.channel == "Release"
     }
