@@ -28,7 +28,11 @@ impl Installer {
         })
     }
 
-    pub fn install_version(&self, version: &str, downloader: Option<Downloader>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn install_version(
+        &self,
+        version: &str,
+        downloader: Option<Downloader>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let client = ApiClient::new()?;
 
         // Fetch releases
@@ -67,7 +71,11 @@ impl Installer {
         let download_path = version_dir.join(filename);
 
         let downloader = downloader.unwrap_or_else(Downloader::detect_best);
-        println!("{} Using downloader: {}", "📥".blue(), downloader.description());
+        println!(
+            "{} Using downloader: {}",
+            "📥".blue(),
+            downloader.description()
+        );
         downloader.download(&download.link, &download_path, None)?;
 
         println!("{} Download complete!", "✅".green());
@@ -152,9 +160,13 @@ impl Installer {
         destination: &Path,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let downloader = Downloader::detect_best();
-        
-        println!("{} Using downloader: {}", "📥".blue(), downloader.description());
-        
+
+        println!(
+            "{} Using downloader: {}",
+            "📥".blue(),
+            downloader.description()
+        );
+
         downloader.download(url, destination, None)
     }
 
@@ -165,9 +177,13 @@ impl Installer {
         full_name: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let downloader = Downloader::detect_best();
-        
-        println!("{} Using downloader: {}", "📥".blue(), downloader.description());
-        
+
+        println!(
+            "{} Using downloader: {}",
+            "📥".blue(),
+            downloader.description()
+        );
+
         downloader.download(url, destination, Some(full_name))
     }
 
@@ -275,11 +291,13 @@ impl Installer {
         pb.set_message("Detecting archive type...");
         pb.enable_steady_tick(std::time::Duration::from_millis(100));
 
-        pb.set_message(format!("Detected: {}", archive_type));
+        pb.set_message(format!("Detected: {archive_type}"));
 
         match archive_type {
             "zip" => self.extract_zip_with_progress(archive_path, destination, &pb)?,
-            "tar.gz" | "tgz" => self.extract_tar_gz_with_progress(archive_path, destination, &pb)?,
+            "tar.gz" | "tgz" => {
+                self.extract_tar_gz_with_progress(archive_path, destination, &pb)?
+            }
             "tar" => self.extract_tar_with_progress(archive_path, destination, &pb)?,
             "dmg" => self.extract_dmg_with_progress(archive_path, destination, &pb)?,
             _ => {
@@ -491,7 +509,7 @@ impl Installer {
             let app_name = app_path.file_name().unwrap();
             let dest_path = destination.join(app_name);
 
-            pb.set_message(format!("Copying {:?}...", app_name));
+            pb.set_message(format!("Copying {app_name:?}..."));
 
             // Use rsync or cp for copying app bundles
             let status = std::process::Command::new("cp")

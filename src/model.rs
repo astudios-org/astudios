@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Content {
+pub struct AndroidStudioReleasesList {
     #[serde(rename = "@version")]
     pub version: String,
     #[serde(rename = "item")]
     pub items: Vec<AndroidStudio>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AndroidStudio {
     pub name: String,
     pub build: String,
@@ -23,7 +23,7 @@ pub struct AndroidStudio {
     pub downloads: Vec<Download>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Download {
     pub link: String,
     pub size: String,

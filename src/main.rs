@@ -1,9 +1,5 @@
-mod api;
 mod cli;
 mod commands;
-mod downloader;
-mod installer;
-mod model;
 
 use clap::Parser;
 use commands::CommandHandler;

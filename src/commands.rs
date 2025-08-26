@@ -1,15 +1,13 @@
-use crate::api::ApiClient;
+use as_man::api::ApiClient;
+use as_man::downloader::Downloader;
+use as_man::installer::Installer;
+use as_man::list::AndroidStudioLister;
+use as_man::model::AndroidStudio;
 
 use crate::cli::{Cli, Commands, DownloaderChoice};
-use crate::downloader::Downloader;
-use crate::installer::Installer;
-use crate::model::{AndroidStudio, Content};
-use colored::*;
+use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::error::Error;
-use std::fs;
-use std::path::PathBuf;
-use std::time::{Duration, SystemTime};
 
 pub struct CommandHandler;
 
@@ -55,11 +53,12 @@ impl CommandHandler {
         pb.set_message("Loading version list...");
         pb.enable_steady_tick(std::time::Duration::from_millis(100));
 
-        let content = Self::get_cached_releases()?;
+        let lister = AndroidStudioLister::new()?;
+        let list = lister.get_releases()?;
 
         pb.finish_and_clear();
 
-        let mut items = content.items;
+        let mut items = list.items;
 
         // Filter based on channel flags
         if release {
@@ -80,48 +79,13 @@ impl CommandHandler {
         println!("{}", "Available Android Studio versions:".green().bold());
         println!();
 
+        items.reverse();
+
         for item in items {
             Self::print_version_info(&item);
         }
 
         Ok(())
-    }
-
-    fn get_cached_releases() -> Result<Content, Box<dyn Error>> {
-        let cache_dir = dirs::cache_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("as-man");
-
-        fs::create_dir_all(&cache_dir)?;
-
-        let cache_path = cache_dir.join("releases.json");
-        let cache_duration = Duration::from_secs(60 * 60); // 1 hour cache
-
-        // Check if cache exists and is valid
-        if cache_path.exists() {
-            let metadata = fs::metadata(&cache_path)?;
-            let modified = metadata.modified()?;
-            let age = SystemTime::now().duration_since(modified)?;
-
-            if age < cache_duration {
-                // Use cached data
-                println!("{} Using cached version list", "💾".blue());
-                let data = fs::read_to_string(&cache_path)?;
-                let content: Content = serde_json::from_str(&data)?;
-                return Ok(content);
-            }
-        }
-
-        // Fetch fresh data
-        println!("{} Fetching latest releases from JetBrains...", "🔄".blue());
-        let client = ApiClient::new()?;
-        let content = client.fetch_releases()?;
-
-        // Cache the data
-        let data = serde_json::to_string_pretty(&content)?;
-        fs::write(&cache_path, data)?;
-
-        Ok(content)
     }
 
     fn print_version_info(item: &AndroidStudio) {
@@ -179,13 +143,13 @@ impl CommandHandler {
         downloader_choice: Option<crate::cli::DownloaderChoice>,
     ) -> Result<(), Box<dyn Error>> {
         let _client = ApiClient::new()?;
-        let content = Self::get_cached_releases()?;
+        let lister = AndroidStudioLister::new()?;
 
         // Find the target version
         let target_item = if latest {
-            content.items.first().ok_or("No versions available")?
+            lister.get_latest_release()?
         } else if let Some(version_query) = version {
-            Self::find_version_by_query(&content.items, version_query)?
+            lister.find_version_by_query(version_query)?
         } else {
             return Err("Please specify a version or use --latest".into());
         };
@@ -300,63 +264,11 @@ impl CommandHandler {
         Ok(())
     }
 
-    fn find_version_by_query<'a>(
-        items: &'a [AndroidStudio],
-        query: &str,
-    ) -> Result<&'a AndroidStudio, Box<dyn Error>> {
-        // First try exact version match
-        if let Some(item) = items.iter().find(|item| item.version == query) {
-            return Ok(item);
-        }
-
-        // Try partial version match
-        if let Some(item) = items.iter().find(|item| item.version.contains(query)) {
-            return Ok(item);
-        }
-
-        // Try name match
-        if let Some(item) = items
-            .iter()
-            .find(|item| item.name.to_lowercase().contains(&query.to_lowercase()))
-        {
-            return Ok(item);
-        }
-
-        // Try channel-based search (e.g., "2023.3.1 Canary 8")
-        let parts: Vec<&str> = query.split_whitespace().collect();
-        if parts.len() >= 3 {
-            let version_part = parts[0];
-            let channel_part = parts[1].to_lowercase();
-            let build_part = parts[2];
-
-            if let Some(item) = items.iter().find(|item| {
-                item.version.contains(version_part)
-                    && item.channel.to_lowercase() == channel_part
-                    && item.build.contains(build_part)
-            }) {
-                return Ok(item);
-            }
-        }
-
-        // Try simpler channel search
-        for item in items {
-            let search_string = format!("{} {} {}", item.version, item.channel, item.build);
-            if search_string.to_lowercase().contains(&query.to_lowercase()) {
-                return Ok(item);
-            }
-        }
-
-        Err(
-            format!("Version '{query}' not found. Use 'as-man list' to see available versions.")
-                .into(),
-        )
-    }
-
     fn handle_update() -> Result<(), Box<dyn Error>> {
         println!("{} Updating Android Studio version list...", "🔄".blue());
 
         // Fetch fresh releases from JetBrains
-        let content = crate::api::ApiClient::new()?.fetch_releases()?;
+        let content = as_man::api::ApiClient::new()?.fetch_releases()?;
 
         println!(
             "{} Found {} available versions",
