@@ -2,10 +2,13 @@ use crate::api::ApiClient;
 use crate::app_installer::AppInstaller;
 use crate::cli::{Cli, Commands};
 use crate::installer::Installer;
-use crate::model::Item;
+use crate::model::{Content, Item};
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::error::Error;
+use std::fs;
+use std::path::PathBuf;
+use std::time::{Duration, SystemTime};
 
 pub struct CommandHandler;
 
@@ -43,10 +46,10 @@ impl CommandHandler {
                 .template("{spinner} {msg}")
                 .unwrap(),
         );
-        pb.set_message("Connecting to JetBrains...");
+        pb.set_message("Loading version list...");
         pb.enable_steady_tick(std::time::Duration::from_millis(100));
 
-        let content = client.fetch_releases()?;
+        let content = Self::get_cached_releases()?;
 
         pb.finish_and_clear();
 
@@ -76,6 +79,43 @@ impl CommandHandler {
         }
 
         Ok(())
+    }
+
+    fn get_cached_releases() -> Result<Content, Box<dyn Error>> {
+        let cache_dir = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("as-man");
+        
+        fs::create_dir_all(&cache_dir)?;
+        
+        let cache_path = cache_dir.join("releases.json");
+        let cache_duration = Duration::from_secs(60 * 60); // 1 hour cache
+        
+        // Check if cache exists and is valid
+        if cache_path.exists() {
+            let metadata = fs::metadata(&cache_path)?;
+            let modified = metadata.modified()?;
+            let age = SystemTime::now().duration_since(modified)?;
+            
+            if age < cache_duration {
+                // Use cached data
+                println!("{} Using cached version list", "💾".blue());
+                let data = fs::read_to_string(&cache_path)?;
+                let content: Content = serde_json::from_str(&data)?;
+                return Ok(content);
+            }
+        }
+        
+        // Fetch fresh data
+        println!("{} Fetching latest releases from JetBrains...", "🔄".blue());
+        let client = ApiClient::new()?;
+        let content = client.fetch_releases()?;
+        
+        // Cache the data
+        let data = serde_json::to_string_pretty(&content)?;
+        fs::write(&cache_path, data)?;
+        
+        Ok(content)
     }
 
     fn print_version_info(item: &Item) {
@@ -160,7 +200,28 @@ impl CommandHandler {
     }
 
     fn handle_update() -> Result<(), Box<dyn Error>> {
-        println!("{} Update command not yet implemented", "⚠".yellow());
+        println!("{} Updating Android Studio version list...", "🔄".blue());
+        
+        // Fetch fresh releases from JetBrains
+        let content = crate::api::ApiClient::new()?.fetch_releases()?;
+        
+        println!("{} Found {} available versions", "✅".green(), content.items.len());
+        
+        // Show the latest few versions
+        let latest_versions: Vec<_> = content.items.iter().take(5).collect();
+        
+        if !latest_versions.is_empty() {
+            println!();
+            println!("{} Latest versions:", "📋".bold());
+            for item in latest_versions {
+                println!("  {} - {} ({})", 
+                    item.version.green(), 
+                    item.build, 
+                    if item.is_beta() { "Beta".yellow() } else if item.is_canary() { "Canary".red() } else { "Release".normal() }
+                );
+            }
+        }
+        
         Ok(())
     }
 }

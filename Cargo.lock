@@ -99,6 +99,7 @@ dependencies = [
  "quick-xml",
  "reqwest",
  "serde",
+ "serde_json",
  "tar",
  "tempfile",
  "zip",
