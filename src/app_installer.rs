@@ -431,6 +431,83 @@ impl AppInstaller {
         Ok(())
     }
 
+    pub fn uninstall_version(&self, version: &str) -> Result<(), Box<dyn std::error::Error>> {
+        #[cfg(target_os = "macos")]
+        let versioned_path = self.applications_dir.join(format!("Android Studio-{}.app", version));
+        
+        #[cfg(target_os = "linux")]
+        let versioned_path = dirs::home_dir()
+            .unwrap()
+            .join("Applications")
+            .join(format!("android-studio-{}", version));
+        
+        #[cfg(target_os = "windows")]
+        let versioned_path = dirs::home_dir()
+            .unwrap()
+            .join("Applications")
+            .join(format!("Android Studio-{}", version));
+
+        // Check if the version is installed in Applications
+        let installed_in_apps = versioned_path.exists();
+        
+        // Check if the version exists in ~/.as-man/versions
+        let version_dir = self.versions_dir.join(version);
+        let installed_in_versions = version_dir.exists();
+
+        if !installed_in_apps && !installed_in_versions {
+            return Err(format!("Android Studio {} is not installed", version).into());
+        }
+
+        println!("{} Removing Android Studio {}...", "🗑".yellow(), version);
+
+        // Check if this is the currently active version
+        let is_active = self.is_version_active(version)?;
+        
+        #[cfg(target_os = "macos")]
+        let symlink_path = self.applications_dir.join("Android Studio.app");
+        
+        #[cfg(target_os = "linux")]
+        let symlink_path = dirs::home_dir()
+            .unwrap()
+            .join("Applications")
+            .join("android-studio");
+        
+        #[cfg(target_os = "windows")]
+        let symlink_path = dirs::home_dir()
+            .unwrap()
+            .join("Applications")
+            .join("Android Studio");
+
+        // If this is the active version, remove the symlink
+        if is_active {
+            if symlink_path.exists() {
+                if symlink_path.is_symlink() {
+                    fs::remove_file(&symlink_path)?;
+                    println!("{} Removed active version symlink", "ℹ".blue());
+                } else {
+                    fs::remove_dir_all(&symlink_path)?;
+                }
+            }
+            println!("{} Android Studio is no longer available", "⚠".yellow());
+        }
+
+        // Remove the versioned installation from Applications
+        if installed_in_apps {
+            fs::remove_dir_all(&versioned_path)?;
+            println!("{} Removed from Applications directory", "✅".green());
+        }
+
+        // Remove the downloaded version from ~/.as-man/versions
+        if installed_in_versions {
+            fs::remove_dir_all(&version_dir)?;
+            println!("{} Removed downloaded version files", "✅".green());
+        }
+
+        println!("{} Successfully uninstalled Android Studio {}", "✅".green(), version);
+
+        Ok(())
+    }
+
     fn is_version_active(&self, version: &str) -> Result<bool, Box<dyn std::error::Error>> {
         #[cfg(target_os = "macos")]
         let symlink_path = self.applications_dir.join("Android Studio.app");

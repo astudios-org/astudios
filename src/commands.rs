@@ -135,8 +135,9 @@ impl CommandHandler {
         Ok(())
     }
 
-    fn handle_uninstall(_version: &str) -> Result<(), Box<dyn Error>> {
-        println!("{} Uninstall command not yet implemented", "⚠".yellow());
+    fn handle_uninstall(version: &str) -> Result<(), Box<dyn Error>> {
+        let app_installer = AppInstaller::new()?;
+        app_installer.uninstall_version(version)?;
         Ok(())
     }
 
