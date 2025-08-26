@@ -1,9 +1,10 @@
 use crate::api::ApiClient;
+use crate::downloader::Downloader;
 use crate::model::AndroidStudio;
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs;
-use std::io::{self, Read, Write};
+use std::io::{self};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -27,7 +28,7 @@ impl Installer {
         })
     }
 
-    pub fn install_version(&self, version: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn install_version(&self, version: &str, downloader: Option<Downloader>) -> Result<(), Box<dyn std::error::Error>> {
         let client = ApiClient::new()?;
 
         // Fetch releases
@@ -65,7 +66,9 @@ impl Installer {
 
         let download_path = version_dir.join(filename);
 
-        self.download_file(&download.link, &download_path)?;
+        let downloader = downloader.unwrap_or_else(Downloader::detect_best);
+        println!("{} Using downloader: {}", "📥".blue(), downloader.description());
+        downloader.download(&download.link, &download_path, None)?;
 
         println!("{} Download complete!", "✅".green());
 
@@ -89,6 +92,7 @@ impl Installer {
         &self,
         version: &str,
         full_name: &str,
+        downloader: Option<Downloader>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let client = ApiClient::new()?;
 
@@ -121,7 +125,8 @@ impl Installer {
 
         let download_path = version_dir.join(filename);
 
-        self.download_file_with_progress(&download.link, &download_path, full_name)?;
+        let downloader = downloader.unwrap_or_else(Downloader::detect_best);
+        downloader.download(&download.link, &download_path, Some(full_name))?;
 
         // Extract the downloaded file
         self.extract_archive(&download_path, &version_dir)?;
@@ -146,49 +151,11 @@ impl Installer {
         url: &str,
         destination: &Path,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let client = reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(300))
-            .build()?;
-
-        let mut response = client.get(url).send()?;
-        let total_size = response.content_length().unwrap_or(0);
-
-        let pb = if total_size > 0 {
-            let pb = ProgressBar::new(total_size);
-            pb.set_style(
-                ProgressStyle::default_bar()
-                    .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-                    .unwrap()
-                    .progress_chars("█▉▊▋▌▍▎▏ "),
-            );
-            pb
-        } else {
-            let pb = ProgressBar::new_spinner();
-            pb.set_style(
-                ProgressStyle::default_spinner()
-                    .template("{spinner:.green} Downloading... {bytes} bytes")
-                    .unwrap(),
-            );
-            pb
-        };
-
-        let mut file = fs::File::create(destination)?;
-        let mut downloaded = 0u64;
-        let mut buf = [0u8; 8192];
-
-        loop {
-            let n = response.read(&mut buf)?;
-            if n == 0 {
-                break;
-            }
-            file.write_all(&buf[..n])?;
-            downloaded += n as u64;
-            pb.set_position(downloaded);
-        }
-
-        pb.finish_and_clear();
-
-        Ok(())
+        let downloader = Downloader::detect_best();
+        
+        println!("{} Using downloader: {}", "📥".blue(), downloader.description());
+        
+        downloader.download(url, destination, None)
     }
 
     fn download_file_with_progress(
@@ -197,58 +164,11 @@ impl Installer {
         destination: &Path,
         full_name: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let client = reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(300))
-            .build()?;
-
-        let mut response = client.get(url).send()?;
-        let total_size = response.content_length().unwrap_or(0);
-
-        let pb = if total_size > 0 {
-            let pb = ProgressBar::new(total_size);
-            pb.set_style(
-                ProgressStyle::default_bar()
-                    .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-                    .unwrap()
-                    .progress_chars("█▉▊▋▌▍▎▏ "),
-            );
-            pb
-        } else {
-            let pb = ProgressBar::new_spinner();
-            pb.set_style(
-                ProgressStyle::default_spinner()
-                    .template("{spinner:.green} Downloading... {bytes} bytes")
-                    .unwrap(),
-            );
-            pb
-        };
-
-        let mut file = fs::File::create(destination)?;
-        let mut downloaded = 0u64;
-        let mut buf = [0u8; 8192];
-
-        loop {
-            let n = response.read(&mut buf)?;
-            if n == 0 {
-                break;
-            }
-            file.write_all(&buf[..n])?;
-            downloaded += n as u64;
-            pb.set_position(downloaded);
-
-            // Print progress percentage for step format
-            if total_size > 0 {
-                let percentage = (downloaded as f64 / total_size as f64) * 100.0;
-                print!("\r(1/6) Downloading {full_name}: {percentage:.0}%");
-                if percentage >= 100.0 {
-                    println!();
-                }
-            }
-        }
-
-        pb.finish_and_clear();
-
-        Ok(())
+        let downloader = Downloader::detect_best();
+        
+        println!("{} Using downloader: {}", "📥".blue(), downloader.description());
+        
+        downloader.download(url, destination, Some(full_name))
     }
 
     fn store_archive_path(
@@ -346,18 +266,32 @@ impl Installer {
             extension
         };
 
-        println!("{} Detected archive type: {}", "📦".blue(), archive_type);
+        let pb = ProgressBar::new_spinner();
+        pb.set_style(
+            ProgressStyle::default_spinner()
+                .template("(2/6) Unarchiving Android Studio: {spinner:.green} {msg}")
+                .unwrap(),
+        );
+        pb.set_message("Detecting archive type...");
+        pb.enable_steady_tick(std::time::Duration::from_millis(100));
+
+        pb.set_message(format!("Detected: {}", archive_type));
 
         match archive_type {
-            "zip" => self.extract_zip(archive_path, destination)?,
-            "tar.gz" | "tgz" => self.extract_tar_gz(archive_path, destination)?,
-            "tar" => self.extract_tar(archive_path, destination)?,
-            "dmg" => self.extract_dmg(archive_path, destination)?,
-            _ => return Err(format!("Unsupported archive format: {archive_type}").into()),
+            "zip" => self.extract_zip_with_progress(archive_path, destination, &pb)?,
+            "tar.gz" | "tgz" => self.extract_tar_gz_with_progress(archive_path, destination, &pb)?,
+            "tar" => self.extract_tar_with_progress(archive_path, destination, &pb)?,
+            "dmg" => self.extract_dmg_with_progress(archive_path, destination, &pb)?,
+            _ => {
+                pb.finish_with_message("❌ Unsupported archive format");
+                return Err(format!("Unsupported archive format: {archive_type}").into());
+            }
         }
 
+        pb.finish_with_message("✅ Unarchiving complete");
+
         // Verify installation
-        self.verify_extracted_installation(destination)?;
+        self.verify_extracted_installation_with_progress(destination, &pb)?;
 
         Ok(())
     }
@@ -378,6 +312,43 @@ impl Installer {
                 Some(path) => destination.join(path),
                 None => continue,
             };
+
+            if file.is_dir() {
+                fs::create_dir_all(&outpath)?;
+            } else {
+                if let Some(p) = outpath.parent() {
+                    if !p.exists() {
+                        fs::create_dir_all(p)?;
+                    }
+                }
+                let mut outfile = fs::File::create(outpath)?;
+                io::copy(&mut file, &mut outfile)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn extract_zip_with_progress(
+        &self,
+        archive_path: &Path,
+        destination: &Path,
+        pb: &ProgressBar,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        pb.set_message("Opening ZIP archive...");
+
+        let file = fs::File::open(archive_path)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+        let total_files = archive.len();
+
+        for i in 0..total_files {
+            let mut file = archive.by_index(i)?;
+            let outpath = match file.enclosed_name() {
+                Some(path) => destination.join(path),
+                None => continue,
+            };
+
+            pb.set_message(format!("Extracting file {}/{}...", i + 1, total_files));
 
             if file.is_dir() {
                 fs::create_dir_all(&outpath)?;
@@ -471,6 +442,80 @@ impl Installer {
         Ok(())
     }
 
+    fn extract_dmg_with_progress(
+        &self,
+        archive_path: &Path,
+        destination: &Path,
+        pb: &ProgressBar,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        pb.set_message("Mounting DMG...");
+
+        // For macOS, we'll use the system tools to extract DMG
+        let temp_mount = tempfile::tempdir()?;
+        let mount_point = temp_mount.path();
+
+        let status = std::process::Command::new("hdiutil")
+            .args([
+                "attach",
+                archive_path.to_str().unwrap(),
+                "-mountpoint",
+                mount_point.to_str().unwrap(),
+                "-nobrowse",
+                "-quiet",
+            ])
+            .status()?;
+
+        if !status.success() {
+            pb.set_message("❌ Failed to mount DMG");
+            return Err("Failed to mount DMG".into());
+        }
+
+        // Find the app bundle in the mounted DMG
+        let app_paths: Vec<PathBuf> = fs::read_dir(mount_point)?
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_name().to_string_lossy().ends_with(".app"))
+            .map(|entry| entry.path())
+            .collect();
+
+        if app_paths.is_empty() {
+            // Unmount the DMG
+            std::process::Command::new("hdiutil")
+                .args(["detach", mount_point.to_str().unwrap(), "-quiet"])
+                .status()?;
+            pb.set_message("❌ No .app bundle found in DMG");
+            return Err("No .app bundle found in DMG".into());
+        }
+
+        // Copy the app bundle to destination
+        for app_path in app_paths {
+            let app_name = app_path.file_name().unwrap();
+            let dest_path = destination.join(app_name);
+
+            pb.set_message(format!("Copying {:?}...", app_name));
+
+            // Use rsync or cp for copying app bundles
+            let status = std::process::Command::new("cp")
+                .args([
+                    "-R",
+                    app_path.to_str().unwrap(),
+                    dest_path.to_str().unwrap(),
+                ])
+                .status()?;
+
+            if !status.success() {
+                pb.set_message("❌ Failed to copy app bundle");
+                return Err("Failed to copy app bundle".into());
+            }
+        }
+
+        // Unmount the DMG
+        std::process::Command::new("hdiutil")
+            .args(["detach", mount_point.to_str().unwrap(), "-quiet"])
+            .status()?;
+
+        Ok(())
+    }
+
     fn extract_tar(
         &self,
         archive_path: &Path,
@@ -481,6 +526,23 @@ impl Installer {
         let file = fs::File::open(archive_path)?;
         let mut archive = tar::Archive::new(file);
 
+        archive.unpack(destination)?;
+
+        Ok(())
+    }
+
+    fn extract_tar_with_progress(
+        &self,
+        archive_path: &Path,
+        destination: &Path,
+        pb: &ProgressBar,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        pb.set_message("Opening TAR archive...");
+
+        let file = fs::File::open(archive_path)?;
+        let mut archive = tar::Archive::new(file);
+
+        pb.set_message("Extracting TAR archive...");
         archive.unpack(destination)?;
 
         Ok(())
@@ -497,6 +559,24 @@ impl Installer {
         let tar = flate2::read::GzDecoder::new(file);
         let mut archive = tar::Archive::new(tar);
 
+        archive.unpack(destination)?;
+
+        Ok(())
+    }
+
+    fn extract_tar_gz_with_progress(
+        &self,
+        archive_path: &Path,
+        destination: &Path,
+        pb: &ProgressBar,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        pb.set_message("Opening TAR.GZ archive...");
+
+        let file = fs::File::open(archive_path)?;
+        let tar = flate2::read::GzDecoder::new(file);
+        let mut archive = tar::Archive::new(tar);
+
+        pb.set_message("Extracting TAR.GZ archive...");
         archive.unpack(destination)?;
 
         Ok(())
@@ -559,6 +639,62 @@ impl Installer {
         Ok(())
     }
 
+    fn verify_extracted_installation_with_progress(
+        &self,
+        destination: &Path,
+        pb: &ProgressBar,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        pb.set_message("Verifying installation...");
+
+        let mut found = false;
+
+        if let Ok(entries) = fs::read_dir(destination) {
+            for entry in entries.filter_map(|e| e.ok()) {
+                let name = entry.file_name();
+                let name_str = name.to_string_lossy();
+
+                // Check for Android Studio app bundle (macOS)
+                if name_str.contains("Android Studio.app") {
+                    pb.set_message("✅ Found Android Studio.app");
+                    found = true;
+                    break;
+                }
+
+                // Check for android-studio directory (Linux/Windows)
+                if name_str.contains("android-studio") {
+                    let studio_dir = entry.path();
+                    if studio_dir.join("bin").exists() {
+                        pb.set_message("✅ Found android-studio with bin directory");
+                        found = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if !found {
+            // List what was actually extracted
+            if let Ok(entries) = fs::read_dir(destination) {
+                let items: Vec<String> = entries
+                    .filter_map(|e| e.ok())
+                    .map(|e| e.file_name().to_string_lossy().to_string())
+                    .collect();
+
+                if items.is_empty() {
+                    pb.set_message("❌ No files were extracted");
+                    return Err("No files were extracted".into());
+                } else {
+                    pb.set_message(format!("⚠️ Extracted files: {}", items.join(", ")));
+                }
+            }
+
+            // Don't fail, just warn - the user might need to move files manually
+            pb.set_message("⚠️ Android Studio installation files may need manual arrangement");
+        }
+
+        Ok(())
+    }
+
     // macOS-specific installation and management methods
     pub fn install_macos(
         &self,
@@ -606,6 +742,80 @@ impl Installer {
         if !status.success() {
             return Err("Failed to install Android Studio using ditto".into());
         }
+
+        // Create/update symlink to point to this version
+        if symlink_path.exists() {
+            if symlink_path.is_symlink() {
+                fs::remove_file(&symlink_path)?;
+            } else {
+                // If it's a real directory, remove it
+                fs::remove_dir_all(&symlink_path)?;
+            }
+        }
+
+        std::os::unix::fs::symlink(&versioned_dest_path, &symlink_path)?;
+
+        Ok(())
+    }
+
+    pub fn install_macos_with_progress(
+        &self,
+        version: &str,
+        full_name: &str,
+        pb: &ProgressBar,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        pb.set_message("Locating Android Studio bundle...");
+
+        let version_dir = self.install_dir.join(version);
+
+        if !version_dir.exists() {
+            pb.set_message("❌ Version not found");
+            return Err(format!("Version {version} not found in ~/.as-man/versions/").into());
+        }
+
+        // Find the Android Studio bundle (either Android Studio.app or Android Studio Preview.app)
+        let mut app_bundle = version_dir.join("Android Studio.app");
+
+        if !app_bundle.exists() {
+            app_bundle = version_dir.join("Android Studio Preview.app");
+        }
+
+        if !app_bundle.exists() {
+            // Check if it's in a subdirectory
+            let app_bundles: Vec<PathBuf> = self.find_files(&version_dir, ".app");
+            if app_bundles.is_empty() {
+                pb.set_message("❌ No Android Studio.app bundle found");
+                return Err("No Android Studio.app bundle found".into());
+            }
+            app_bundle = app_bundles[0].clone();
+        }
+
+        // Create versioned app name with full name
+        let safe_name = full_name.replace(" | ", " ").replace(" ", " ");
+        let versioned_dest_path = self.applications_dir.join(format!("{safe_name}.app"));
+        let symlink_path = self.applications_dir.join("Android Studio.app");
+
+        pb.set_message("Removing existing installation...");
+
+        // Remove existing versioned installation if it exists
+        if versioned_dest_path.exists() {
+            fs::remove_dir_all(&versioned_dest_path)?;
+        }
+
+        pb.set_message("Installing app bundle...");
+
+        // Use ditto to install the app bundle
+        let status = Command::new("ditto")
+            .arg(&app_bundle)
+            .arg(&versioned_dest_path)
+            .status()?;
+
+        if !status.success() {
+            pb.set_message("❌ Failed to install using ditto");
+            return Err("Failed to install Android Studio using ditto".into());
+        }
+
+        pb.set_message("Updating symlink...");
 
         // Create/update symlink to point to this version
         if symlink_path.exists() {

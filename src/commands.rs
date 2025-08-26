@@ -1,6 +1,7 @@
 use crate::api::ApiClient;
 
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, DownloaderChoice};
+use crate::downloader::Downloader;
 use crate::installer::Installer;
 use crate::model::{AndroidStudio, Content};
 use colored::*;
@@ -25,7 +26,8 @@ impl CommandHandler {
                 version,
                 latest,
                 directory,
-            } => Self::handle_install(version.as_deref(), latest, directory.as_deref()),
+                downloader,
+            } => Self::handle_install(version.as_deref(), latest, directory.as_deref(), downloader),
             Commands::Uninstall { version } => Self::handle_uninstall(&version),
             Commands::Use { version } => Self::handle_use(&version),
             Commands::Installed => Self::handle_installed(),
@@ -174,6 +176,7 @@ impl CommandHandler {
         version: Option<&str>,
         latest: bool,
         directory: Option<&str>,
+        downloader_choice: Option<crate::cli::DownloaderChoice>,
     ) -> Result<(), Box<dyn Error>> {
         let _client = ApiClient::new()?;
         let content = Self::get_cached_releases()?;
@@ -199,43 +202,75 @@ impl CommandHandler {
         );
         println!();
 
-        // Step 1: Download
-        println!("(1/6) Downloading {full_name}: 0%");
+        // Create downloader based on choice
+        let downloader = match downloader_choice {
+            Some(DownloaderChoice::Reqwest) => Some(Downloader::Reqwest),
+            Some(DownloaderChoice::Aria2) => Downloader::find_aria2().map(Downloader::Aria2).ok(),
+            None => None, // Use auto-detection
+        };
+
         let installer = Installer::new()?;
-        installer.install_version_with_progress(version_str, full_name)?;
 
-        // Step 2: Unarchive
-        println!("(2/6) Unarchiving Android Studio (This can take a while)");
-        // Already handled in install_version_with_progress
+        // Step 1: Download (handled in install_version_with_progress)
+        installer.install_version_with_progress(version_str, full_name, downloader)?;
 
+        // Step 2: Unarchive (handled in extract_archive)
         // Step 3: Move to Applications
-        println!(
-            "(3/6) Moving Android Studio to {}...",
-            directory.unwrap_or("/Applications")
+        let target_dir = directory.unwrap_or("/Applications");
+        let pb = ProgressBar::new_spinner();
+        pb.set_style(
+            ProgressStyle::default_spinner()
+                .template("(3/6) Moving Android Studio to {msg}...")
+                .unwrap(),
         );
+        pb.set_message(target_dir.to_string());
+        pb.enable_steady_tick(std::time::Duration::from_millis(100));
+
         if let Some(custom_dir) = directory {
             installer.install_macos_to_directory(version_str, full_name, custom_dir)?;
         } else {
-            installer.install_macos(version_str, full_name)?;
+            installer.install_macos_with_progress(version_str, full_name, &pb)?;
         }
+        pb.finish_with_message("✅ Move complete");
 
         // Step 4: Cleanup archive
-        println!("(4/6) Moving Android Studio archive to the Trash");
+        let pb = ProgressBar::new_spinner();
+        pb.set_style(
+            ProgressStyle::default_spinner()
+                .template("(4/6) Moving Android Studio archive to the Trash")
+                .unwrap(),
+        );
+        pb.enable_steady_tick(std::time::Duration::from_millis(100));
         installer.cleanup_archive(version_str)?;
+        pb.finish_with_message("✅ Cleanup complete");
 
         // Step 5: Security assessment
-        println!("(5/6) Checking security assessment and code signing");
+        let pb = ProgressBar::new_spinner();
+        pb.set_style(
+            ProgressStyle::default_spinner()
+                .template("(5/6) Checking security assessment and code signing")
+                .unwrap(),
+        );
+        pb.enable_steady_tick(std::time::Duration::from_millis(100));
         installer.verify_installation(version_str, full_name, directory)?;
+        pb.finish_with_message("✅ Security check complete");
 
         // Step 6: Finish
-        println!("(6/6) Finishing installation");
+        let pb = ProgressBar::new_spinner();
+        pb.set_style(
+            ProgressStyle::default_spinner()
+                .template("(6/6) Finishing installation")
+                .unwrap(),
+        );
+        pb.enable_steady_tick(std::time::Duration::from_millis(100));
+        std::thread::sleep(std::time::Duration::from_millis(500)); // Brief pause for user experience
+        pb.finish_with_message("✅ Installation complete");
 
         println!();
         println!(
-            "{} has been installed to {}/{}.app",
+            "{} has been installed to {}",
             full_name.green().bold(),
             directory.unwrap_or("/Applications"),
-            full_name
         );
 
         Ok(())
@@ -311,10 +346,10 @@ impl CommandHandler {
             }
         }
 
-        Err(format!(
-            "Version '{query}' not found. Use 'as-man list' to see available versions."
+        Err(
+            format!("Version '{query}' not found. Use 'as-man list' to see available versions.")
+                .into(),
         )
-        .into())
     }
 
     fn handle_update() -> Result<(), Box<dyn Error>> {
