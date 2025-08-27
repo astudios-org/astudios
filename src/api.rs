@@ -17,7 +17,7 @@ impl ApiClient {
     pub fn with_timeout(seconds: u64) -> Result<Self, AsManError> {
         let client = Client::builder()
             .timeout(Duration::from_secs(seconds))
-            .user_agent(&Config::user_agent())
+            .user_agent(Config::user_agent())
             .build()?;
 
         Ok(Self { client })

@@ -40,22 +40,22 @@ pub enum AsManError {
 impl fmt::Display for AsManError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AsManError::Io(e) => write!(f, "IO error: {}", e),
-            AsManError::Network(e) => write!(f, "Network error: {}", e),
-            AsManError::Parse(msg) => write!(f, "Parse error: {}", msg),
-            AsManError::Config(msg) => write!(f, "Configuration error: {}", msg),
-            AsManError::VersionNotFound(version) => write!(f, "Version '{}' not found", version),
-            AsManError::Platform(msg) => write!(f, "Platform error: {}", msg),
-            AsManError::Download(msg) => write!(f, "Download error: {}", msg),
-            AsManError::Installation(msg) => write!(f, "Installation error: {}", msg),
-            AsManError::Extraction(msg) => write!(f, "Extraction error: {}", msg),
-            AsManError::DownloaderNotFound(msg) => write!(f, "Downloader not found: {}", msg),
-            AsManError::Path(msg) => write!(f, "Path error: {}", msg),
-            AsManError::Cache(msg) => write!(f, "Cache error: {}", msg),
-            AsManError::General(msg) => write!(f, "Error: {}", msg),
-            AsManError::Utf8(e) => write!(f, "UTF-8 error: {}", e),
-            AsManError::Zip(e) => write!(f, "ZIP error: {}", e),
-            AsManError::SystemTime(e) => write!(f, "System time error: {}", e),
+            AsManError::Io(e) => write!(f, "IO error: {e}"),
+            AsManError::Network(e) => write!(f, "Network error: {e}"),
+            AsManError::Parse(msg) => write!(f, "Parse error: {msg}"),
+            AsManError::Config(msg) => write!(f, "Configuration error: {msg}"),
+            AsManError::VersionNotFound(version) => write!(f, "Version '{version}' not found"),
+            AsManError::Platform(msg) => write!(f, "Platform error: {msg}"),
+            AsManError::Download(msg) => write!(f, "Download error: {msg}"),
+            AsManError::Installation(msg) => write!(f, "Installation error: {msg}"),
+            AsManError::Extraction(msg) => write!(f, "Extraction error: {msg}"),
+            AsManError::DownloaderNotFound(msg) => write!(f, "Downloader not found: {msg}"),
+            AsManError::Path(msg) => write!(f, "Path error: {msg}"),
+            AsManError::Cache(msg) => write!(f, "Cache error: {msg}"),
+            AsManError::General(msg) => write!(f, "Error: {msg}"),
+            AsManError::Utf8(e) => write!(f, "UTF-8 error: {e}"),
+            AsManError::Zip(e) => write!(f, "ZIP error: {e}"),
+            AsManError::SystemTime(e) => write!(f, "System time error: {e}"),
         }
     }
 }

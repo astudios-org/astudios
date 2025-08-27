@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -63,10 +63,6 @@ pub enum Commands {
         /// Custom installation directory (default: /Applications)
         #[arg(long, short)]
         directory: Option<String>,
-
-        /// Force use of specific downloader [possible values: reqwest, aria2]
-        #[arg(long, value_enum)]
-        downloader: Option<DownloaderChoice>,
     },
 
     /// Uninstall a specific Android Studio version
@@ -89,10 +85,4 @@ pub enum Commands {
 
     /// Update the local releases cache
     Update,
-}
-
-#[derive(ValueEnum, Debug, Clone)]
-pub enum DownloaderChoice {
-    Reqwest,
-    Aria2,
 }

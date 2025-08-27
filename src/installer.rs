@@ -1,5 +1,4 @@
 use crate::{config::Config, downloader::Downloader, error::AsManError};
-use colored::Colorize;
 use std::{
     fs,
     io::{self},
@@ -61,7 +60,7 @@ impl Installer {
         let app_path = self.move_to_applications(version, &extracted_path, custom_dir)?;
         self.cleanup_files(&download_path, &extracted_path)?;
         self.verify_installation(&app_path)?;
-        self.create_symlink(version, &app_path)?;
+        self.create_symlink(&app_path)?;
         Ok(())
     }
 
@@ -80,7 +79,7 @@ impl Installer {
             .items
             .iter()
             .find(|item| item.version == version)
-            .ok_or_else(|| AsManError::VersionNotFound(format!("Version {} not found", version)))?;
+            .ok_or_else(|| AsManError::VersionNotFound(format!("Version {version} not found")))?;
 
         let download = target_item
             .get_platform_download()
@@ -88,7 +87,7 @@ impl Installer {
                 "No download available for current platform".to_string(),
             ))?;
 
-        let default_filename = format!("android-studio-{}.dmg", version);
+        let default_filename = format!("android-studio-{version}.dmg");
         let filename = Path::new(&download.link)
             .file_name()
             .and_then(|n| n.to_str())
@@ -105,7 +104,7 @@ impl Installer {
             }
         }
 
-        println!("Downloading Android Studio {}...", version);
+        println!("Downloading Android Studio {version}...");
 
         // Use the downloader to actually download the file
         let downloader = Downloader::detect_best();
@@ -227,7 +226,7 @@ impl Installer {
 
         if !output.status.success() {
             let error_msg = String::from_utf8_lossy(&output.stderr);
-            println!("DMG mount failed: {}", error_msg);
+            println!("DMG mount failed: {error_msg}");
             return Err(AsManError::Extraction(format!(
                 "Failed to mount DMG: {}",
                 error_msg.trim()
@@ -244,10 +243,10 @@ impl Installer {
             for entry in entries.filter_map(|e| e.ok()) {
                 let name = entry.file_name();
                 let name_str = name.to_string_lossy();
-                println!("Found item: {}", name_str);
+                println!("Found item: {name_str}");
 
                 if name_str.ends_with(".app") {
-                    println!("Found .app bundle: {}", name_str);
+                    println!("Found .app bundle: {name_str}");
                     app_paths.push(entry.path());
                 }
             }
@@ -332,7 +331,7 @@ impl Installer {
                 }
             }
             Err(e) => {
-                println!("Warning: Could not detach DMG: {}", e);
+                println!("Warning: Could not detach DMG: {e}");
             }
         }
         Ok(())
@@ -351,7 +350,7 @@ impl Installer {
             self.applications_dir.clone()
         };
 
-        let app_path = target_dir.join(format!("Android Studio {}.app", version));
+        let app_path = target_dir.join(format!("Android Studio {version}.app"));
 
         // Find the actual app bundle in extracted directory
         let mut app_source = None;
@@ -439,7 +438,7 @@ impl Installer {
     }
 
     /// Create application symlink for version switching
-    fn create_symlink(&self, version: &str, app_path: &Path) -> Result<(), AsManError> {
+    fn create_symlink(&self, app_path: &Path) -> Result<(), AsManError> {
         let symlink_path = self.applications_dir.join("Android Studio.app");
 
         // Remove existing symlink
@@ -469,7 +468,7 @@ impl Installer {
     pub fn uninstall_version(&self, version: &str) -> Result<(), AsManError> {
         let app_path = self
             .applications_dir
-            .join(format!("Android Studio-{}.app", version));
+            .join(format!("Android Studio-{version}.app"));
 
         if app_path.exists() {
             fs::remove_dir_all(&app_path)?;
@@ -530,26 +529,15 @@ impl Installer {
         let versions = self.list_installed_versions()?;
         if !versions.contains(&version.to_string()) {
             return Err(AsManError::VersionNotFound(format!(
-                "Version {} is not installed",
-                version
+                "Version {version} is not installed"
             )));
         }
 
         let app_path = self
             .applications_dir
-            .join(format!("Android Studio-{}.app", version));
-        self.create_symlink(version, &app_path)?;
+            .join(format!("Android Studio {version}.app"));
+        self.create_symlink(&app_path)?;
 
         Ok(())
-    }
-
-    /// Sanitize application name for filesystem
-    fn sanitize_app_name(&self, name: &str) -> String {
-        name.replace(" | ", " ")
-            .replace(" ", "-")
-            .replace(".", "")
-            .replace("(", "")
-            .replace(")", "")
-            .to_lowercase()
     }
 }

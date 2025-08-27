@@ -1,4 +1,4 @@
-use crate::cli::{Cli, Commands, DownloaderChoice};
+use crate::cli::{Cli, Commands};
 use as_man::{
     config::Config,
     downloader::Downloader,
@@ -29,13 +29,17 @@ impl CommandHandler {
                 latest,
                 latest_prerelease,
                 directory,
-            } => Self::handle_download(version.as_deref(), latest, latest_prerelease, directory.as_deref()),
+            } => Self::handle_download(
+                version.as_deref(),
+                latest,
+                latest_prerelease,
+                directory.as_deref(),
+            ),
             Commands::Install {
                 version,
                 latest,
                 directory,
-                downloader,
-            } => Self::handle_install(version.as_deref(), latest, directory.as_deref(), downloader),
+            } => Self::handle_install(version.as_deref(), latest, directory.as_deref()),
             Commands::Uninstall { version } => Self::handle_uninstall(&version),
             Commands::Use { version } => Self::handle_use(&version),
             Commands::Installed => Self::handle_installed(),
@@ -51,8 +55,7 @@ impl CommandHandler {
         canary: bool,
         limit: Option<usize>,
     ) -> Result<(), AsManError> {
-        let mut reporter = ProgressReporter::new(true);
-        let pb = reporter.create_spinner("Fetching Android Studio releases...");
+        let reporter = ProgressReporter::new(true);
 
         let lister = AndroidStudioLister::new()?;
         let releases = lister.get_releases()?;
@@ -129,7 +132,6 @@ impl CommandHandler {
         version: Option<&str>,
         latest: bool,
         directory: Option<&str>,
-        downloader_choice: Option<DownloaderChoice>,
     ) -> Result<(), AsManError> {
         let lister = AndroidStudioLister::new()?;
 
@@ -155,13 +157,6 @@ impl CommandHandler {
             version_str
         );
         println!();
-
-        // Create downloader based on choice
-        let downloader = match downloader_choice {
-            Some(DownloaderChoice::Reqwest) => Some(Downloader::Reqwest),
-            Some(DownloaderChoice::Aria2) => Downloader::find_aria2().map(Downloader::Aria2).ok(),
-            None => None, // Use auto-detection
-        };
 
         let installer = Installer::new()?;
         installer.install_version(version_str, full_name, directory)?;
@@ -221,11 +216,14 @@ impl CommandHandler {
         fs::create_dir_all(&download_dir)?;
 
         // Get appropriate download for current platform
-        let download = target_item.get_platform_download()
-            .ok_or(AsManError::Download("No download available for current platform".to_string()))?;
+        let download = target_item
+            .get_platform_download()
+            .ok_or(AsManError::Download(
+                "No download available for current platform".to_string(),
+            ))?;
 
         // Create filename from URL
-        let default_filename = format!("android-studio-{}.dmg", version_str);
+        let default_filename = format!("android-studio-{version_str}.dmg");
         let filename = Path::new(&download.link)
             .file_name()
             .and_then(|n| n.to_str())
@@ -263,10 +261,7 @@ impl CommandHandler {
             "✅".green(),
             full_name.green().bold()
         );
-        println!(
-            "  Location: {}",
-            download_path.display()
-        );
+        println!("  Location: {}", download_path.display());
 
         Ok(())
     }
@@ -275,7 +270,11 @@ impl CommandHandler {
     fn handle_uninstall(version: &str) -> Result<(), AsManError> {
         let installer = Installer::new()?;
         installer.uninstall_version(version)?;
-        println!("{} Successfully uninstalled Android Studio {}", "✅".green(), version);
+        println!(
+            "{} Successfully uninstalled Android Studio {}",
+            "✅".green(),
+            version
+        );
         Ok(())
     }
 
@@ -302,8 +301,12 @@ impl CommandHandler {
 
             let active = installer.get_active_version()?;
             for version in versions {
-                let indicator = if active.as_ref() == Some(&version) { "✅" } else { "  " };
-                println!("{} Android Studio-{}", indicator, version);
+                let indicator = if active.as_ref() == Some(&version) {
+                    "✅"
+                } else {
+                    "  "
+                };
+                println!("{indicator} Android Studio-{version}");
             }
         }
 
@@ -317,10 +320,17 @@ impl CommandHandler {
 
         match active {
             Some(version) => {
-                println!("{} Currently using Android Studio {}", "✅".green(), version);
+                println!(
+                    "{} Currently using Android Studio {}",
+                    "✅".green(),
+                    version
+                );
             }
             None => {
-                println!("{} Android Studio is not installed or symlink is missing", "⚠️".yellow());
+                println!(
+                    "{} Android Studio is not installed or symlink is missing",
+                    "⚠️".yellow()
+                );
                 println!();
                 println!("Use 'as-man install <version>' to install a version");
             }
@@ -331,8 +341,7 @@ impl CommandHandler {
 
     /// Handle the update command to refresh version cache
     fn handle_update() -> Result<(), AsManError> {
-        let mut reporter = ProgressReporter::new(true);
-        let pb = reporter.create_spinner("Updating Android Studio version list...");
+        let reporter = ProgressReporter::new(true);
 
         // Force refresh by clearing cache
         let lister = AndroidStudioLister::new()?;

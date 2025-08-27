@@ -1,6 +1,6 @@
 use crate::{config::Config, error::AsManError};
 use std::fs;
-use std::io::{self, Read};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -48,7 +48,9 @@ impl Downloader {
             }
         }
 
-        Err(AsManError::DownloaderNotFound("aria2 not found in system PATH".to_string()))
+        Err(AsManError::DownloaderNotFound(
+            "aria2 not found in system PATH".to_string(),
+        ))
     }
 
     /// Download a file from URL to destination
@@ -65,7 +67,9 @@ impl Downloader {
 
         match self {
             Downloader::Reqwest => self.download_with_reqwest(url, destination, progress_name),
-            Downloader::Aria2(path) => self.download_with_aria2(path, url, destination, progress_name),
+            Downloader::Aria2(path) => {
+                self.download_with_aria2(path, url, destination, progress_name)
+            }
         }
     }
 
@@ -84,9 +88,9 @@ impl Downloader {
 
         let mut response = client.get(url).send()?;
         let mut file = fs::File::create(destination)?;
-        
+
         std::io::copy(&mut response, &mut file)?;
-        
+
         Ok(())
     }
 
@@ -104,8 +108,15 @@ impl Downloader {
             .arg("--dir")
             .arg(destination.parent().unwrap_or_else(|| Path::new(".")))
             .arg("--out")
-            .arg(destination.file_name().ok_or(AsManError::Path("Invalid destination filename".to_string()))?)
-            .arg(format!("--max-connection-per-server={}", Config::ARIA2_MAX_CONNECTIONS))
+            .arg(
+                destination
+                    .file_name()
+                    .ok_or(AsManError::Path("Invalid destination filename".to_string()))?,
+            )
+            .arg(format!(
+                "--max-connection-per-server={}",
+                Config::ARIA2_MAX_CONNECTIONS
+            ))
             .arg(format!("--split={}", Config::ARIA2_MAX_CONNECTIONS))
             .arg(format!("--min-split-size={}", Config::ARIA2_MIN_SPLIT_SIZE))
             .arg("--continue=true")
@@ -130,27 +141,11 @@ impl Downloader {
                 })
                 .unwrap_or_else(|| "Unknown error".to_string());
 
-            Err(AsManError::Download(format!("aria2 download failed: {}", stderr.trim())))
+            Err(AsManError::Download(format!(
+                "aria2 download failed: {}",
+                stderr.trim()
+            )))
         }
-    }
-
-    /// Get file size from HTTP HEAD request
-    fn get_file_size(&self, url: &str) -> Result<u64, AsManError> {
-        use reqwest::blocking::Client;
-
-        let size = Client::new()
-            .head(url)
-            .send()
-            .ok()
-            .and_then(|r| {
-                r.headers()
-                    .get("content-length")
-                    .and_then(|v| v.to_str().ok())
-                    .and_then(|s| s.parse::<u64>().ok())
-            })
-            .unwrap_or(0);
-        
-        Ok(size)
     }
 
     /// Get a human-readable description of the downloader

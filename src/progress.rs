@@ -32,7 +32,7 @@ impl ProgressReporter {
         );
         pb.set_message(message.to_string());
         pb.enable_steady_tick(Duration::from_millis(100));
-        
+
         self.progress_bar = Some(pb.clone());
         pb
     }
@@ -46,12 +46,12 @@ impl ProgressReporter {
         let pb = ProgressBar::new(total);
         pb.set_style(
             ProgressStyle::default_bar()
-                .template(&format!("{{spinner:.green}} [{{bar:40.cyan/blue}}] {{bytes}}/{{total_bytes}} ({{eta}}) @ {{bytes_per_sec}}"))
+                .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta}) @ {bytes_per_sec}")
                 .unwrap()
                 .progress_chars("█▉▊▋▌▍▎▏ "),
         );
         pb.set_message(message.to_string());
-        
+
         self.progress_bar = Some(pb.clone());
         pb
     }
@@ -80,14 +80,14 @@ impl ProgressReporter {
     /// Finish progress with success message
     pub fn finish_with_success(&self, message: &str) {
         if let Some(pb) = &self.progress_bar {
-            pb.finish_with_message(format!("✅ {}", message));
+            pb.finish_with_message(format!("✅ {message}"));
         }
     }
 
     /// Finish progress with error message
     pub fn finish_with_error(&self, message: &str) {
         if let Some(pb) = &self.progress_bar {
-            pb.finish_with_message(format!("❌ {}", message));
+            pb.finish_with_message(format!("❌ {message}"));
         }
     }
 
