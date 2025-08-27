@@ -33,6 +33,24 @@ pub enum Commands {
         limit: Option<usize>,
     },
 
+    /// Download a specific version of Android Studio
+    Download {
+        /// Version to download (e.g., "Hedgehog", "2022.3.1")
+        version: Option<String>,
+
+        /// Download the latest stable release version available
+        #[arg(long)]
+        latest: bool,
+
+        /// Download the latest pre-release version available (Canary or Beta)
+        #[arg(long)]
+        latest_prerelease: bool,
+
+        /// The directory to download the archive to. Defaults to ~/Downloads
+        #[arg(long)]
+        directory: Option<String>,
+    },
+
     /// Install a specific Android Studio version to ~/.as-man/versions and /Applications
     Install {
         /// Version to install (e.g., "2024.3.2.14", "Android Studio Meerkat Feature Drop", "2023.3.1 Canary 8")

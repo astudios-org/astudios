@@ -61,7 +61,20 @@ impl AndroidStudioLister {
         let releases = self.get_releases()?;
         let items = releases.items;
 
-        items.first().cloned().ok_or("No versions available".into())
+        items.iter()
+            .find(|item| item.is_release())
+            .cloned()
+            .ok_or("No release versions available".into())
+    }
+
+    pub fn get_latest_prerelease(&self) -> Result<AndroidStudio, Box<dyn Error>> {
+        let releases = self.get_releases()?;
+        let items = releases.items;
+
+        items.iter()
+            .find(|item| item.is_beta() || item.is_canary())
+            .cloned()
+            .ok_or("No pre-release versions available".into())
     }
 
     pub fn find_version_by_query(&self, query: &str) -> Result<AndroidStudio, Box<dyn Error>> {

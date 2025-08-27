@@ -7,7 +7,10 @@ use as_man::model::AndroidStudio;
 use crate::cli::{Cli, Commands, DownloaderChoice};
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
+use dirs;
 use std::error::Error;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 pub struct CommandHandler;
 
@@ -20,6 +23,12 @@ impl CommandHandler {
                 canary,
                 limit,
             } => Self::handle_list(release, beta, canary, limit),
+            Commands::Download {
+                version,
+                latest,
+                latest_prerelease,
+                directory,
+            } => Self::handle_download(version.as_deref(), latest, latest_prerelease, directory.as_deref()),
             Commands::Install {
                 version,
                 latest,
@@ -235,6 +244,100 @@ impl CommandHandler {
             "{} has been installed to {}",
             full_name.green().bold(),
             directory.unwrap_or("/Applications"),
+        );
+
+        Ok(())
+    }
+
+    fn handle_download(
+        version: Option<&str>,
+        latest: bool,
+        latest_prerelease: bool,
+        directory: Option<&str>,
+    ) -> Result<(), Box<dyn Error>> {
+        let _client = ApiClient::new()?;
+        let lister = AndroidStudioLister::new()?;
+
+        // Find the target version
+        let target_item = if latest {
+            lister.get_latest_release()?
+        } else if latest_prerelease {
+            lister.get_latest_prerelease()?
+        } else if let Some(version_query) = version {
+            lister.find_version_by_query(version_query)?
+        } else {
+            return Err("Please specify a version or use --latest or --latest-prerelease".into());
+        };
+
+        let version_str = &target_item.version;
+        let full_name = &target_item.name;
+
+        println!();
+        println!(
+            "{} Downloading {} ({})...",
+            "🚀".blue(),
+            full_name.green().bold(),
+            version_str
+        );
+        println!();
+
+        // Determine download directory
+        let download_dir = if let Some(dir) = directory {
+            PathBuf::from(dir)
+        } else {
+            let home_dir = dirs::home_dir().ok_or("Could not find home directory")?;
+            home_dir.join("Downloads")
+        };
+
+        // Ensure download directory exists
+        fs::create_dir_all(&download_dir)?;
+
+        // Get appropriate download for current platform
+        let download = target_item.get_macos_download()
+            .ok_or("macOS download not available for this version")?;
+
+        // Create filename from URL
+        let default_filename = format!("android-studio-{}.dmg", version_str);
+        let filename = Path::new(&download.link)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(&default_filename);
+
+        let download_path = download_dir.join(filename);
+
+        // Skip if file already exists
+        if download_path.exists() {
+            let metadata = fs::metadata(&download_path)?;
+            if metadata.len() > 0 {
+                println!(
+                    "{} File already exists: {}",
+                    "ℹ️".yellow(),
+                    download_path.display()
+                );
+                return Ok(());
+            }
+        }
+
+        // Use best available downloader
+        let downloader = Downloader::detect_best();
+        println!(
+            "{} Using downloader: {}",
+            "📥".blue(),
+            downloader.description()
+        );
+
+        // Download the file
+        downloader.download(&download.link, &download_path, Some(full_name))?;
+
+        println!();
+        println!(
+            "{} {} downloaded successfully!",
+            "✅".green(),
+            full_name.green().bold()
+        );
+        println!(
+            "  Location: {}",
+            download_path.display()
         );
 
         Ok(())
