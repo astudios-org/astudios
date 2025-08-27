@@ -1,21 +1,22 @@
-use as_man::api::ApiClient;
-use as_man::downloader::Downloader;
-use as_man::installer::Installer;
-use as_man::list::AndroidStudioLister;
-use as_man::model::AndroidStudio;
-
 use crate::cli::{Cli, Commands, DownloaderChoice};
+use as_man::{
+    config::Config,
+    downloader::Downloader,
+    error::AsManError,
+    installer::Installer,
+    list::AndroidStudioLister,
+    model::{AndroidStudio, ReleaseChannel},
+    progress::ProgressReporter,
+};
 use colored::Colorize;
-use indicatif::{ProgressBar, ProgressStyle};
-use dirs;
-use std::error::Error;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::{fs, path::Path, path::PathBuf};
 
+/// Handles all CLI commands with proper error handling and user feedback
 pub struct CommandHandler;
 
 impl CommandHandler {
-    pub fn handle(cli: Cli) -> Result<(), Box<dyn Error>> {
+    /// Main entry point for handling CLI commands
+    pub fn handle(cli: Cli) -> Result<(), AsManError> {
         match cli.command {
             Commands::List {
                 release,
@@ -43,72 +44,50 @@ impl CommandHandler {
         }
     }
 
+    /// Handle the list command to display available Android Studio versions
     fn handle_list(
         release: bool,
         beta: bool,
         canary: bool,
         limit: Option<usize>,
-    ) -> Result<(), Box<dyn Error>> {
-        let _client = ApiClient::new()?;
-
-        println!("{} Android Studio releases...", "Fetching".blue().bold());
-        let pb = ProgressBar::new_spinner();
-        pb.set_style(
-            ProgressStyle::default_spinner()
-                .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
-                .template("{spinner} {msg}")
-                .unwrap(),
-        );
-        pb.set_message("Loading version list...");
-        pb.enable_steady_tick(std::time::Duration::from_millis(100));
+    ) -> Result<(), AsManError> {
+        let mut reporter = ProgressReporter::new(true);
+        let pb = reporter.create_spinner("Fetching Android Studio releases...");
 
         let lister = AndroidStudioLister::new()?;
-        let list = lister.get_releases()?;
+        let releases = lister.get_releases()?;
 
-        pb.finish_and_clear();
+        reporter.clear();
 
-        let mut items = list.items;
+        let items = lister.filter_by_channel(releases, release, beta, canary);
 
-        // Filter based on channel flags
-        if release {
-            items.retain(|item| item.is_release());
-        }
-        if beta {
-            items.retain(|item| item.is_beta());
-        }
-        if canary {
-            items.retain(|item| item.is_canary());
-        }
-
-        // Apply limit if specified
-        if let Some(limit) = limit {
-            items.truncate(limit);
-        }
+        let display_items: Vec<_> = if let Some(limit) = limit {
+            items.into_iter().take(limit).collect()
+        } else {
+            items
+        };
 
         println!("{}", "Available Android Studio versions:".green().bold());
         println!();
 
-        items.reverse();
-
-        for item in items {
-            Self::print_version_info(&item);
+        for item in display_items.iter().rev() {
+            Self::print_version_info(item);
         }
 
         Ok(())
     }
 
     fn print_version_info(item: &AndroidStudio) {
-        let channel_color = match item.channel.as_str() {
-            "Release" => "Release".green(),
-            "Beta" => "Beta".yellow(),
-            "Canary" => "Canary".red(),
-            "RC" => "RC".blue(),
-            "Patch" => "Patch".cyan(),
-            _ => item.channel.as_str().normal(),
+        let channel_color = match item.channel_type() {
+            ReleaseChannel::Release => "Release".green(),
+            ReleaseChannel::Beta => "Beta".yellow(),
+            ReleaseChannel::Canary => "Canary".red(),
+            ReleaseChannel::ReleaseCandidate => "RC".blue(),
+            ReleaseChannel::Patch => "Patch".cyan(),
         };
 
         println!(
-            "{} {} ({})",
+            "{} {} ({}",
             ">".dimmed(),
             item.version.bold(),
             channel_color
@@ -119,7 +98,7 @@ impl CommandHandler {
 
         if let Some(download) = item.get_macos_download() {
             println!(
-                "  {} {} ({})",
+                "  {} {} ({}",
                 "macOS:".dimmed(),
                 "Available".green(),
                 download.size
@@ -127,7 +106,7 @@ impl CommandHandler {
         }
         if let Some(download) = item.get_windows_download() {
             println!(
-                "  {} {} ({})",
+                "  {} {} ({}",
                 "Windows:".dimmed(),
                 "Available".green(),
                 download.size
@@ -135,7 +114,7 @@ impl CommandHandler {
         }
         if let Some(download) = item.get_linux_download() {
             println!(
-                "  {} {} ({})",
+                "  {} {} ({}",
                 "Linux:".dimmed(),
                 "Available".green(),
                 download.size
@@ -145,13 +124,13 @@ impl CommandHandler {
         println!();
     }
 
+    /// Handle the install command to install Android Studio versions
     fn handle_install(
         version: Option<&str>,
         latest: bool,
         directory: Option<&str>,
-        downloader_choice: Option<crate::cli::DownloaderChoice>,
-    ) -> Result<(), Box<dyn Error>> {
-        let _client = ApiClient::new()?;
+        downloader_choice: Option<DownloaderChoice>,
+    ) -> Result<(), AsManError> {
         let lister = AndroidStudioLister::new()?;
 
         // Find the target version
@@ -160,7 +139,9 @@ impl CommandHandler {
         } else if let Some(version_query) = version {
             lister.find_version_by_query(version_query)?
         } else {
-            return Err("Please specify a version or use --latest".into());
+            return Err(AsManError::General(
+                "Please specify a version or use --latest".to_string(),
+            ));
         };
 
         let version_str = &target_item.version;
@@ -183,61 +164,7 @@ impl CommandHandler {
         };
 
         let installer = Installer::new()?;
-
-        // Step 1: Download (handled in install_version_with_progress)
-        installer.install_version_with_progress(version_str, full_name, downloader)?;
-
-        // Step 2: Unarchive (handled in extract_archive)
-        // Step 3: Move to Applications
-        let target_dir = directory.unwrap_or("/Applications");
-        let pb = ProgressBar::new_spinner();
-        pb.set_style(
-            ProgressStyle::default_spinner()
-                .template("(3/6) Moving Android Studio to {msg}...")
-                .unwrap(),
-        );
-        pb.set_message(target_dir.to_string());
-        pb.enable_steady_tick(std::time::Duration::from_millis(100));
-
-        if let Some(custom_dir) = directory {
-            installer.install_macos_to_directory(version_str, full_name, custom_dir)?;
-        } else {
-            installer.install_macos_with_progress(version_str, full_name, &pb)?;
-        }
-        pb.finish_with_message("✅ Move complete");
-
-        // Step 4: Cleanup archive
-        let pb = ProgressBar::new_spinner();
-        pb.set_style(
-            ProgressStyle::default_spinner()
-                .template("(4/6) Moving Android Studio archive to the Trash")
-                .unwrap(),
-        );
-        pb.enable_steady_tick(std::time::Duration::from_millis(100));
-        installer.cleanup_archive(version_str)?;
-        pb.finish_with_message("✅ Cleanup complete");
-
-        // Step 5: Security assessment
-        let pb = ProgressBar::new_spinner();
-        pb.set_style(
-            ProgressStyle::default_spinner()
-                .template("(5/6) Checking security assessment and code signing")
-                .unwrap(),
-        );
-        pb.enable_steady_tick(std::time::Duration::from_millis(100));
-        installer.verify_installation(version_str, full_name, directory)?;
-        pb.finish_with_message("✅ Security check complete");
-
-        // Step 6: Finish
-        let pb = ProgressBar::new_spinner();
-        pb.set_style(
-            ProgressStyle::default_spinner()
-                .template("(6/6) Finishing installation")
-                .unwrap(),
-        );
-        pb.enable_steady_tick(std::time::Duration::from_millis(100));
-        std::thread::sleep(std::time::Duration::from_millis(500)); // Brief pause for user experience
-        pb.finish_with_message("✅ Installation complete");
+        installer.install_version(version_str, full_name, directory)?;
 
         println!();
         println!(
@@ -249,13 +176,13 @@ impl CommandHandler {
         Ok(())
     }
 
+    /// Handle the download command to download Android Studio versions
     fn handle_download(
         version: Option<&str>,
         latest: bool,
         latest_prerelease: bool,
         directory: Option<&str>,
-    ) -> Result<(), Box<dyn Error>> {
-        let _client = ApiClient::new()?;
+    ) -> Result<(), AsManError> {
         let lister = AndroidStudioLister::new()?;
 
         // Find the target version
@@ -266,7 +193,9 @@ impl CommandHandler {
         } else if let Some(version_query) = version {
             lister.find_version_by_query(version_query)?
         } else {
-            return Err("Please specify a version or use --latest or --latest-prerelease".into());
+            return Err(AsManError::General(
+                "Please specify a version or use --latest or --latest-prerelease".to_string(),
+            ));
         };
 
         let version_str = &target_item.version;
@@ -285,16 +214,15 @@ impl CommandHandler {
         let download_dir = if let Some(dir) = directory {
             PathBuf::from(dir)
         } else {
-            let home_dir = dirs::home_dir().ok_or("Could not find home directory")?;
-            home_dir.join("Downloads")
+            Config::default_download_dir()
         };
 
         // Ensure download directory exists
         fs::create_dir_all(&download_dir)?;
 
         // Get appropriate download for current platform
-        let download = target_item.get_macos_download()
-            .ok_or("macOS download not available for this version")?;
+        let download = target_item.get_platform_download()
+            .ok_or(AsManError::Download("No download available for current platform".to_string()))?;
 
         // Create filename from URL
         let default_filename = format!("android-studio-{}.dmg", version_str);
@@ -343,61 +271,96 @@ impl CommandHandler {
         Ok(())
     }
 
-    fn handle_uninstall(version: &str) -> Result<(), Box<dyn Error>> {
+    /// Handle the uninstall command
+    fn handle_uninstall(version: &str) -> Result<(), AsManError> {
         let installer = Installer::new()?;
         installer.uninstall_version(version)?;
+        println!("{} Successfully uninstalled Android Studio {}", "✅".green(), version);
         Ok(())
     }
 
-    fn handle_use(version: &str) -> Result<(), Box<dyn Error>> {
+    /// Handle the use command to switch versions
+    fn handle_use(version: &str) -> Result<(), AsManError> {
         let installer = Installer::new()?;
         installer.switch_to_version(version)?;
+        println!("{} Now using Android Studio {}", "✅".green(), version);
         Ok(())
     }
 
-    fn handle_installed() -> Result<(), Box<dyn Error>> {
+    /// Handle the installed command to show installed versions
+    fn handle_installed() -> Result<(), AsManError> {
         let installer = Installer::new()?;
-        installer.list_installed_versions()?;
+        let versions = installer.list_installed_versions()?;
+
+        if versions.is_empty() {
+            println!("{} No Android Studio versions installed", "⚠️".yellow());
+            println!();
+            println!("Use 'as-man install <version>' to install a version");
+        } else {
+            println!("{} Installed Android Studio versions:", "📋".green().bold());
+            println!();
+
+            let active = installer.get_active_version()?;
+            for version in versions {
+                let indicator = if active.as_ref() == Some(&version) { "✅" } else { "  " };
+                println!("{} Android Studio-{}", indicator, version);
+            }
+        }
+
         Ok(())
     }
 
-    fn handle_which() -> Result<(), Box<dyn Error>> {
+    /// Handle the which command to show current version
+    fn handle_which() -> Result<(), AsManError> {
         let installer = Installer::new()?;
-        installer.show_current_version()?;
+        let active = installer.get_active_version()?;
+
+        match active {
+            Some(version) => {
+                println!("{} Currently using Android Studio {}", "✅".green(), version);
+            }
+            None => {
+                println!("{} Android Studio is not installed or symlink is missing", "⚠️".yellow());
+                println!();
+                println!("Use 'as-man install <version>' to install a version");
+            }
+        }
+
         Ok(())
     }
 
-    fn handle_update() -> Result<(), Box<dyn Error>> {
-        println!("{} Updating Android Studio version list...", "🔄".blue());
+    /// Handle the update command to refresh version cache
+    fn handle_update() -> Result<(), AsManError> {
+        let mut reporter = ProgressReporter::new(true);
+        let pb = reporter.create_spinner("Updating Android Studio version list...");
 
-        // Fetch fresh releases from JetBrains
-        let content = as_man::api::ApiClient::new()?.fetch_releases()?;
+        // Force refresh by clearing cache
+        let lister = AndroidStudioLister::new()?;
+        let releases = lister.get_releases()?;
+
+        reporter.finish_with_success("Version list updated");
 
         println!(
             "{} Found {} available versions",
             "✅".green(),
-            content.items.len()
+            releases.items.len()
         );
 
         // Show the latest few versions
-        let latest_versions: Vec<_> = content.items.iter().take(5).collect();
+        let latest_versions: Vec<_> = releases.items.into_iter().take(5).collect();
 
         if !latest_versions.is_empty() {
             println!();
             println!("{} Latest versions:", "📋".bold());
             for item in latest_versions {
-                println!(
-                    "  {} - {} ({})",
-                    item.version.green(),
-                    item.build,
-                    if item.is_beta() {
-                        "Beta".yellow()
-                    } else if item.is_canary() {
-                        "Canary".red()
-                    } else {
-                        "Release".normal()
-                    }
-                );
+                let channel = match item.channel_type() {
+                    ReleaseChannel::Release => "Release".normal(),
+                    ReleaseChannel::Beta => "Beta".yellow(),
+                    ReleaseChannel::Canary => "Canary".red(),
+                    ReleaseChannel::ReleaseCandidate => "RC".blue(),
+                    ReleaseChannel::Patch => "Patch".cyan(),
+                };
+                println!("  {} - {} ({}", item.version.green(), item.build, channel);
             }
         }
 

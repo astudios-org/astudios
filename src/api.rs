@@ -1,25 +1,31 @@
-use crate::model::AndroidStudioReleasesList;
+use crate::{config::Config, error::AsManError, model::AndroidStudioReleasesList};
 use reqwest::blocking::Client;
 use std::time::Duration;
 
-const FEED_URL: &str = "https://teamcity.jetbrains.com/guestAuth/repository/download/AndroidStudioReleasesList/.lastSuccessful/android-studio-releases-list.xml";
-
+/// HTTP client for interacting with JetBrains API
 pub struct ApiClient {
     client: Client,
 }
 
 impl ApiClient {
-    pub fn new() -> reqwest::Result<Self> {
+    /// Create a new API client with default configuration
+    pub fn new() -> Result<Self, AsManError> {
+        Self::with_timeout(Config::NETWORK_TIMEOUT_SECS)
+    }
+
+    /// Create a new API client with custom timeout
+    pub fn with_timeout(seconds: u64) -> Result<Self, AsManError> {
         let client = Client::builder()
-            .timeout(Duration::from_secs(30))
-            .user_agent("as-man/0.1.0")
+            .timeout(Duration::from_secs(seconds))
+            .user_agent(&Config::user_agent())
             .build()?;
 
         Ok(Self { client })
     }
 
-    pub fn fetch_releases(&self) -> Result<AndroidStudioReleasesList, Box<dyn std::error::Error>> {
-        let response = self.client.get(FEED_URL).send()?;
+    /// Fetch Android Studio releases from JetBrains API
+    pub fn fetch_releases(&self) -> Result<AndroidStudioReleasesList, AsManError> {
+        let response = self.client.get(Config::RELEASES_FEED_URL).send()?;
         let bytes = response.bytes()?;
 
         let text = std::str::from_utf8(&bytes)?;
