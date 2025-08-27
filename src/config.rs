@@ -28,11 +28,9 @@ impl Config {
     /// Minimum split size for aria2 downloads
     pub const ARIA2_MIN_SPLIT_SIZE: &'static str = "1M";
 
-    /// Default download directory
+    /// Default download directory (now points to versions directory)
     pub fn default_download_dir() -> PathBuf {
-        dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("Downloads")
+        Self::versions_dir()
     }
 
     /// Application cache directory

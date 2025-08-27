@@ -50,7 +50,7 @@ pub enum Commands {
         #[arg(long)]
         latest_prerelease: bool,
 
-        /// The directory to download the archive to. Defaults to ~/Downloads
+        /// The directory to download the archive to. Defaults to ~/.as-man/versions/{version}
         #[arg(long)]
         directory: Option<String>,
     },

@@ -270,7 +270,8 @@ impl CommandHandler {
         let download_dir = if let Some(dir) = directory {
             PathBuf::from(dir)
         } else {
-            Config::default_download_dir()
+            // Create version-specific subdirectory in versions directory
+            Config::default_download_dir().join(version_str)
         };
 
         // Ensure download directory exists
