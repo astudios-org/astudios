@@ -195,4 +195,25 @@ impl AndroidStudioLister {
 
         items
     }
+
+    /// Filter releases to only include those available for the current platform
+    pub fn filter_by_current_platform(&self, releases: Vec<AndroidStudio>) -> Vec<AndroidStudio> {
+        releases
+            .into_iter()
+            .filter(|item| item.get_platform_download().is_some())
+            .collect()
+    }
+
+    /// Get the current platform name for display purposes
+    pub fn get_current_platform_name() -> &'static str {
+        if cfg!(target_os = "macos") {
+            "macOS"
+        } else if cfg!(target_os = "windows") {
+            "Windows"
+        } else if cfg!(target_os = "linux") {
+            "Linux"
+        } else {
+            "Unknown"
+        }
+    }
 }

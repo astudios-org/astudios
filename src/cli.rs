@@ -31,6 +31,10 @@ pub enum Commands {
         /// Limit the number of results
         #[arg(short, long)]
         limit: Option<usize>,
+
+        /// Show download information for all platforms instead of just the current platform
+        #[arg(long)]
+        all_platforms: bool,
     },
 
     /// Download a specific version of Android Studio

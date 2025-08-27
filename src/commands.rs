@@ -23,7 +23,8 @@ impl CommandHandler {
                 beta,
                 canary,
                 limit,
-            } => Self::handle_list(release, beta, canary, limit),
+                all_platforms,
+            } => Self::handle_list(release, beta, canary, limit, all_platforms),
             Commands::Download {
                 version,
                 latest,
@@ -54,6 +55,7 @@ impl CommandHandler {
         beta: bool,
         canary: bool,
         limit: Option<usize>,
+        all_platforms: bool,
     ) -> Result<(), AsManError> {
         let reporter = ProgressReporter::new(true);
 
@@ -62,7 +64,12 @@ impl CommandHandler {
 
         reporter.clear();
 
-        let items = lister.filter_by_channel(releases, release, beta, canary);
+        let mut items = lister.filter_by_channel(releases, release, beta, canary);
+
+        // Filter by current platform unless all_platforms flag is set
+        if !all_platforms {
+            items = lister.filter_by_current_platform(items);
+        }
 
         let display_items: Vec<_> = if let Some(limit) = limit {
             items.into_iter().take(limit).collect()
@@ -70,17 +77,51 @@ impl CommandHandler {
             items
         };
 
-        println!("{}", "Available Android Studio versions:".green().bold());
+        // Display header with platform information
+        if all_platforms {
+            println!(
+                "{}",
+                "Available Android Studio versions (all platforms):"
+                    .green()
+                    .bold()
+            );
+        } else {
+            println!(
+                "{} {}:",
+                "Available Android Studio versions for".green().bold(),
+                AndroidStudioLister::get_current_platform_name()
+                    .green()
+                    .bold()
+            );
+        }
         println!();
 
+        if display_items.is_empty() {
+            if all_platforms {
+                println!(
+                    "{} No versions found matching the specified criteria",
+                    "⚠️".yellow()
+                );
+            } else {
+                println!(
+                    "{} No versions available for {} matching the specified criteria",
+                    "⚠️".yellow(),
+                    AndroidStudioLister::get_current_platform_name()
+                );
+                println!();
+                println!("Use --all-platforms to see versions for all platforms");
+            }
+            return Ok(());
+        }
+
         for item in display_items.iter().rev() {
-            Self::print_version_info(item);
+            Self::print_version_info(item, all_platforms);
         }
 
         Ok(())
     }
 
-    fn print_version_info(item: &AndroidStudio) {
+    fn print_version_info(item: &AndroidStudio, show_all_platforms: bool) {
         let channel_color = match item.channel_type() {
             ReleaseChannel::Release => "Release".green(),
             ReleaseChannel::Beta => "Beta".yellow(),
@@ -99,29 +140,49 @@ impl CommandHandler {
         println!("  {} {}", "Build:".dimmed(), item.build);
         println!("  {} {}", "Date:".dimmed(), item.date);
 
-        if let Some(download) = item.get_macos_download() {
-            println!(
-                "  {} {} ({}",
-                "macOS:".dimmed(),
-                "Available".green(),
-                download.size
-            );
-        }
-        if let Some(download) = item.get_windows_download() {
-            println!(
-                "  {} {} ({}",
-                "Windows:".dimmed(),
-                "Available".green(),
-                download.size
-            );
-        }
-        if let Some(download) = item.get_linux_download() {
-            println!(
-                "  {} {} ({}",
-                "Linux:".dimmed(),
-                "Available".green(),
-                download.size
-            );
+        // Show platform-specific download information
+        if show_all_platforms {
+            // Show all platforms when flag is set
+            if let Some(download) = item.get_macos_download() {
+                println!(
+                    "  {} {} ({})",
+                    "macOS:".dimmed(),
+                    "Available".green(),
+                    download.size
+                );
+            }
+            if let Some(download) = item.get_windows_download() {
+                println!(
+                    "  {} {} ({})",
+                    "Windows:".dimmed(),
+                    "Available".green(),
+                    download.size
+                );
+            }
+            if let Some(download) = item.get_linux_download() {
+                println!(
+                    "  {} {} ({})",
+                    "Linux:".dimmed(),
+                    "Available".green(),
+                    download.size
+                );
+            }
+        } else {
+            // Show only current platform
+            if let Some(download) = item.get_platform_download() {
+                println!(
+                    "  {} {} ({})",
+                    format!("{}:", AndroidStudioLister::get_current_platform_name()).dimmed(),
+                    "Available".green(),
+                    download.size
+                );
+            } else {
+                println!(
+                    "  {} {}",
+                    format!("{}:", AndroidStudioLister::get_current_platform_name()).dimmed(),
+                    "Not Available".red()
+                );
+            }
         }
 
         println!();
