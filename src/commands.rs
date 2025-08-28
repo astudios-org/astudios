@@ -40,7 +40,13 @@ impl CommandHandler {
                 version,
                 latest,
                 directory,
-            } => Self::handle_install(version.as_deref(), latest, directory.as_deref()),
+                skip_checks,
+            } => Self::handle_install(
+                version.as_deref(),
+                latest,
+                directory.as_deref(),
+                skip_checks,
+            ),
             Commands::Uninstall { version } => Self::handle_uninstall(&version),
             Commands::Use { version } => Self::handle_use(&version),
             Commands::Installed => Self::handle_installed(),
@@ -193,6 +199,7 @@ impl CommandHandler {
         version: Option<&str>,
         latest: bool,
         directory: Option<&str>,
+        skip_checks: bool,
     ) -> Result<(), AsManError> {
         let lister = AndroidStudioLister::new()?;
 
@@ -220,7 +227,7 @@ impl CommandHandler {
         println!();
 
         let installer = Installer::new()?;
-        installer.install_version(version_str, full_name, directory)?;
+        installer.install_version_with_checks(version_str, full_name, directory, !skip_checks)?;
 
         println!();
         println!(

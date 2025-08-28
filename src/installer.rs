@@ -1,4 +1,5 @@
-use crate::{config::Config, downloader::Downloader, error::AsManError};
+use crate::{config::Config, detector::SystemDetector, downloader::Downloader, error::AsManError};
+use colored::Colorize;
 use std::{
     fs,
     io::{self},
@@ -55,6 +56,62 @@ impl Installer {
         full_name: &str,
         custom_dir: Option<&str>,
     ) -> Result<(), AsManError> {
+        self.install_version_with_checks(version, full_name, custom_dir, true)
+    }
+
+    /// Install Android Studio version with optional prerequisite checks
+    pub fn install_version_with_checks(
+        &self,
+        version: &str,
+        full_name: &str,
+        custom_dir: Option<&str>,
+        run_checks: bool,
+    ) -> Result<(), AsManError> {
+        let target_dir = if let Some(dir) = custom_dir {
+            PathBuf::from(dir)
+        } else {
+            self.applications_dir.clone()
+        };
+
+        // Run prerequisite checks if enabled
+        if run_checks {
+            println!("{} Running prerequisite checks...", "🔍".blue());
+            let detection_result =
+                SystemDetector::detect_system_requirements(&self.install_dir, &target_dir)?;
+
+            // Display warnings if any
+            if detection_result.has_warnings() {
+                for warning in &detection_result.warnings {
+                    println!("{} {}", "⚠️".yellow(), warning.yellow());
+                }
+                println!();
+            }
+
+            // Check if system meets requirements
+            if !detection_result.is_valid() {
+                println!(
+                    "{} System does not meet installation requirements:",
+                    "❌".red()
+                );
+                for issue in &detection_result.issues {
+                    println!("  • {}", issue.red());
+                }
+                println!();
+                println!(
+                    "{} Please resolve the above issues and try again.",
+                    "💡".blue()
+                );
+                println!("You can use --skip-checks to bypass these checks (not recommended).");
+
+                return Err(AsManError::PrerequisiteNotMet(
+                    "System requirements not met".to_string(),
+                ));
+            }
+
+            println!("{} All prerequisite checks passed!", "✅".green());
+            println!();
+        }
+
         let download_path = self.download_version(version, full_name)?;
         let extracted_path = self.extract_archive(&download_path, version)?;
         let app_path = self.move_to_applications(version, &extracted_path, custom_dir)?;

@@ -67,6 +67,10 @@ pub enum Commands {
         /// Custom installation directory (default: /Applications)
         #[arg(long, short)]
         directory: Option<String>,
+
+        /// Skip prerequisite checks (not recommended)
+        #[arg(long)]
+        skip_checks: bool,
     },
 
     /// Uninstall a specific Android Studio version

@@ -28,6 +28,15 @@ impl Config {
     /// Minimum split size for aria2 downloads
     pub const ARIA2_MIN_SPLIT_SIZE: &'static str = "1M";
 
+    /// Minimum disk space required for Android Studio installation (in GB)
+    pub const MIN_DISK_SPACE_GB: u64 = 8;
+
+    /// Minimum RAM recommended for Android Studio (in GB)
+    pub const MIN_RAM_GB: u64 = 8;
+
+    /// Timeout for system detection checks (in seconds)
+    pub const DETECTION_TIMEOUT_SECS: u64 = 10;
+
     /// Default download directory (now points to versions directory)
     pub fn default_download_dir() -> PathBuf {
         Self::versions_dir()
@@ -62,6 +71,16 @@ impl Config {
     /// User agent string for HTTP requests
     pub fn user_agent() -> String {
         format!("{}/0.1.0", Self::APP_NAME)
+    }
+
+    /// Get minimum disk space requirement in GB
+    pub fn min_disk_space_gb() -> u64 {
+        Self::MIN_DISK_SPACE_GB
+    }
+
+    /// Get minimum RAM requirement in GB
+    pub fn min_ram_gb() -> u64 {
+        Self::MIN_RAM_GB
     }
 
     /// Common aria2 executable paths by platform

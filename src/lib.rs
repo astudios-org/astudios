@@ -1,5 +1,6 @@
 pub mod api;
 pub mod config;
+pub mod detector;
 pub mod downloader;
 pub mod error;
 pub mod installer;

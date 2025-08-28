@@ -35,6 +35,14 @@ pub enum AsManError {
     Zip(zip::result::ZipError),
     /// System time errors
     SystemTime(std::time::SystemTimeError),
+    /// Prerequisite not met errors
+    PrerequisiteNotMet(String),
+    /// Insufficient resources errors
+    InsufficientResources(String),
+    /// Permission denied errors
+    PermissionDenied(String),
+    /// Network unavailable errors
+    NetworkUnavailable(String),
 }
 
 impl fmt::Display for AsManError {
@@ -56,6 +64,10 @@ impl fmt::Display for AsManError {
             AsManError::Utf8(e) => write!(f, "UTF-8 error: {e}"),
             AsManError::Zip(e) => write!(f, "ZIP error: {e}"),
             AsManError::SystemTime(e) => write!(f, "System time error: {e}"),
+            AsManError::PrerequisiteNotMet(msg) => write!(f, "Prerequisite not met: {msg}"),
+            AsManError::InsufficientResources(msg) => write!(f, "Insufficient resources: {msg}"),
+            AsManError::PermissionDenied(msg) => write!(f, "Permission denied: {msg}"),
+            AsManError::NetworkUnavailable(msg) => write!(f, "Network unavailable: {msg}"),
         }
     }
 }

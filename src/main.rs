@@ -30,6 +30,22 @@ fn main() {
             AsManError::Config(msg) => {
                 eprintln!("Configuration Error: {msg}");
             }
+            AsManError::PrerequisiteNotMet(msg) => {
+                eprintln!("Prerequisite Check Failed: {msg}");
+                eprintln!("Please resolve the above issues and try again");
+            }
+            AsManError::InsufficientResources(msg) => {
+                eprintln!("Insufficient Resources: {msg}");
+                eprintln!("Please free up space or resources and try again");
+            }
+            AsManError::PermissionDenied(msg) => {
+                eprintln!("Permission Error: {msg}");
+                eprintln!("You may need to run with administrator privileges");
+            }
+            AsManError::NetworkUnavailable(msg) => {
+                eprintln!("Network Error: {msg}");
+                eprintln!("Please check your internet connection and firewall settings");
+            }
             _ => {
                 eprintln!("Error: {e}");
             }
