@@ -325,9 +325,9 @@ impl CommandHandler {
     /// Handle the installed command to show installed versions
     fn handle_installed() -> Result<(), AsManError> {
         let installer = Installer::new()?;
-        let versions = installer.list_installed_versions()?;
+        let installations = installer.list_installed_studios()?;
 
-        if versions.is_empty() {
+        if installations.is_empty() {
             println!("{} No Android Studio versions installed", "⚠️".yellow());
             println!();
             println!("Use 'as-man install <version>' to install a version");
@@ -335,14 +335,21 @@ impl CommandHandler {
             println!("{} Installed Android Studio versions:", "📋".green().bold());
             println!();
 
-            let active = installer.get_active_version()?;
-            for version in versions {
-                let indicator = if active.as_ref() == Some(&version) {
+            let active = installer.get_active_studio()?;
+            let active_id = active.as_ref().map(|a| a.identifier());
+
+            for installation in installations {
+                let indicator = if active_id.as_ref() == Some(&installation.identifier()) {
                     "✅"
                 } else {
                     "  "
                 };
-                println!("{indicator} Android Studio-{version}");
+                println!(
+                    "{indicator} {} ({})",
+                    installation.display_name().green(),
+                    installation.identifier().blue()
+                );
+                println!("       Path: {}", installation.path.display().to_string().dimmed());
             }
         }
 
@@ -352,15 +359,17 @@ impl CommandHandler {
     /// Handle the which command to show current version
     fn handle_which() -> Result<(), AsManError> {
         let installer = Installer::new()?;
-        let active = installer.get_active_version()?;
+        let active = installer.get_active_studio()?;
 
         match active {
-            Some(version) => {
+            Some(installation) => {
                 println!(
-                    "{} Currently using Android Studio {}",
+                    "{} Currently using {} ({})",
                     "✅".green(),
-                    version
+                    installation.display_name().green(),
+                    installation.identifier().blue()
                 );
+                println!("   Path: {}", installation.path.display().to_string().dimmed());
             }
             None => {
                 println!(

@@ -1,4 +1,4 @@
-use crate::{config::Config, detector::SystemDetector, downloader::Downloader, error::AsManError};
+use crate::{config::Config, detector::SystemDetector, downloader::Downloader, error::AsManError, model::InstalledAndroidStudio};
 use colored::Colorize;
 use std::{
     fs,
@@ -338,6 +338,9 @@ impl Installer {
             self.applications_dir.clone()
         };
 
+        // Ensure target directory exists
+        fs::create_dir_all(&target_dir)?;
+
         let app_path = target_dir.join(format!("Android Studio {version}.app"));
 
         // Find the actual app bundle in extracted directory
@@ -357,22 +360,43 @@ impl Installer {
             "Android Studio.app not found in extracted files".to_string(),
         ))?;
 
-        // Remove existing installation
+        println!("Installing Android Studio to: {}", app_path.display());
+
+        // Remove existing installation if it exists
         if app_path.exists() {
+            println!("Removing existing installation...");
             fs::remove_dir_all(&app_path)?;
         }
 
-        // Copy the app bundle
-        let status = Command::new("cp")
-            .args(["-R", source.to_str().unwrap(), app_path.to_str().unwrap()])
-            .status()?;
+        // Copy the app bundle using a more robust approach
+        // Use ditto instead of cp for better macOS app bundle handling
+        let output = Command::new("ditto")
+            .args([
+                source
+                    .to_str()
+                    .ok_or(AsManError::Path("Invalid source path".to_string()))?,
+                app_path
+                    .to_str()
+                    .ok_or(AsManError::Path("Invalid target path".to_string()))?,
+            ])
+            .output()?;
 
-        if !status.success() {
+        if !output.status.success() {
+            let error_msg = String::from_utf8_lossy(&output.stderr);
+            return Err(AsManError::Installation(format!(
+                "Failed to install app bundle: {}",
+                error_msg.trim()
+            )));
+        }
+
+        // Verify the installation was successful
+        if !app_path.exists() {
             return Err(AsManError::Installation(
-                "Failed to move app to applications".to_string(),
+                "Installation completed but app bundle not found at target location".to_string(),
             ));
         }
 
+        println!("Installation completed successfully!");
         Ok(app_path)
     }
 
@@ -426,19 +450,59 @@ impl Installer {
     fn create_symlink(&self, app_path: &Path) -> Result<(), AsManError> {
         let symlink_path = self.applications_dir.join("Android Studio.app");
 
-        // Remove existing symlink
-        if symlink_path.exists() {
-            if symlink_path.is_symlink() {
-                fs::remove_file(&symlink_path)?;
-            } else {
-                fs::remove_dir_all(&symlink_path)?;
+        println!(
+            "Creating symlink: {} -> {}",
+            symlink_path.display(),
+            app_path.display()
+        );
+
+        // Remove existing symlink or file/directory
+        if symlink_path.exists() || symlink_path.is_symlink() {
+            // Check if it's a symlink (including broken symlinks)
+            match fs::symlink_metadata(&symlink_path) {
+                Ok(metadata) => {
+                    if metadata.file_type().is_symlink() {
+                        println!("Removing existing symlink...");
+                        fs::remove_file(&symlink_path)?;
+                    } else if metadata.is_dir() {
+                        println!("Removing existing directory...");
+                        fs::remove_dir_all(&symlink_path)?;
+                    } else {
+                        println!("Removing existing file...");
+                        fs::remove_file(&symlink_path)?;
+                    }
+                }
+                Err(_) => {
+                    // If we can't get metadata but the path exists, try to remove it as a file first
+                    if fs::remove_file(&symlink_path).is_err() {
+                        // If removing as file fails, try as directory
+                        fs::remove_dir_all(&symlink_path)?;
+                    }
+                }
             }
         }
 
-        // Create new symlink (macOS/Unix)
-        std::os::unix::fs::symlink(app_path, &symlink_path)?;
+        // Ensure the target exists before creating symlink
+        if !app_path.exists() {
+            return Err(AsManError::Installation(format!(
+                "Cannot create symlink: target does not exist: {}",
+                app_path.display()
+            )));
+        }
 
-        Ok(())
+        // Create new symlink (macOS/Unix)
+        match std::os::unix::fs::symlink(app_path, &symlink_path) {
+            Ok(_) => {
+                println!("Symlink created successfully!");
+                Ok(())
+            }
+            Err(e) => Err(AsManError::Installation(format!(
+                "Failed to create symlink from {} to {}: {}",
+                symlink_path.display(),
+                app_path.display(),
+                e
+            ))),
+        }
     }
 
     /// Uninstall a specific version
@@ -460,61 +524,84 @@ impl Installer {
         Ok(())
     }
 
-    /// List all installed versions
-    pub fn list_installed_versions(&self) -> Result<Vec<String>, AsManError> {
-        let mut versions = Vec::new();
+    /// List all installed Android Studio instances
+    pub fn list_installed_studios(&self) -> Result<Vec<InstalledAndroidStudio>, AsManError> {
+        let mut installations = Vec::new();
 
         if let Ok(entries) = fs::read_dir(&self.applications_dir) {
             for entry in entries.filter_map(|e| e.ok()) {
-                let name = entry.file_name();
-                let name_str = name.to_string_lossy();
-                if name_str.starts_with("Android Studio-") && name_str.ends_with(".app") {
-                    if let Some(version) = name_str
-                        .strip_prefix("Android Studio-")
-                        .and_then(|s| s.strip_suffix(".app"))
-                    {
-                        versions.push(version.to_string());
+                let path = entry.path();
+                let name = path.file_name().unwrap_or_default().to_string_lossy();
+                
+                // Check if it's an Android Studio app bundle
+                if name.contains("Android Studio") && name.ends_with(".app") {
+                    if let Ok(Some(installed)) = InstalledAndroidStudio::new(path) {
+                        installations.push(installed);
                     }
                 }
             }
         }
 
-        versions.sort();
-        Ok(versions)
+        // Sort by version (newest first)
+        installations.sort_by(|a, b| b.cmp(a));
+        Ok(installations)
     }
 
-    /// Get currently active version
-    pub fn get_active_version(&self) -> Result<Option<String>, AsManError> {
+    /// List all installed versions (legacy compatibility)
+    pub fn list_installed_versions(&self) -> Result<Vec<String>, AsManError> {
+        let installations = self.list_installed_studios()?;
+        Ok(installations
+            .into_iter()
+            .map(|install| install.version.short_version)
+            .collect())
+    }
+
+    /// Get currently active Android Studio installation
+    pub fn get_active_studio(&self) -> Result<Option<InstalledAndroidStudio>, AsManError> {
         let symlink_path = self.applications_dir.join("Android Studio.app");
 
         if symlink_path.exists() && symlink_path.is_symlink() {
             if let Ok(target) = fs::read_link(&symlink_path) {
-                let target_name = target.file_name().and_then(|n| n.to_str()).unwrap_or("");
-
-                return Ok(target_name
-                    .strip_prefix("Android Studio-")
-                    .and_then(|s| s.strip_suffix(".app"))
-                    .map(|s| s.to_string()));
+                if let Ok(Some(installed)) = InstalledAndroidStudio::new(target) {
+                    return Ok(Some(installed));
+                }
             }
         }
 
         Ok(None)
     }
 
-    /// Switch to a different version
-    pub fn switch_to_version(&self, version: &str) -> Result<(), AsManError> {
-        let versions = self.list_installed_versions()?;
-        if !versions.contains(&version.to_string()) {
-            return Err(AsManError::VersionNotFound(format!(
-                "Version {version} is not installed"
-            )));
+    /// Get currently active version (legacy compatibility)
+    pub fn get_active_version(&self) -> Result<Option<String>, AsManError> {
+        if let Some(active) = self.get_active_studio()? {
+            Ok(Some(active.version.short_version))
+        } else {
+            Ok(None)
         }
+    }
 
-        let app_path = self
-            .applications_dir
-            .join(format!("Android Studio {version}.app"));
-        self.create_symlink(&app_path)?;
+    /// Switch to a different Android Studio installation by identifier
+    pub fn switch_to_studio(&self, identifier: &str) -> Result<(), AsManError> {
+        let installations = self.list_installed_studios()?;
+        
+        // Find installation by identifier (build version) or short version
+        let target_installation = installations
+            .iter()
+            .find(|install| {
+                install.identifier() == identifier || install.version.short_version == identifier
+            })
+            .ok_or_else(|| {
+                AsManError::VersionNotFound(format!(
+                    "Android Studio with identifier '{identifier}' is not installed"
+                ))
+            })?;
 
+        self.create_symlink(&target_installation.path)?;
         Ok(())
+    }
+
+    /// Switch to a different version (legacy compatibility)
+    pub fn switch_to_version(&self, version: &str) -> Result<(), AsManError> {
+        self.switch_to_studio(version)
     }
 }

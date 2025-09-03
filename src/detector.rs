@@ -191,6 +191,20 @@ impl SystemDetector {
             fs::create_dir_all(path)?;
         }
 
+        // Canonicalize the path to resolve any relative components like "./"
+        let canonical_path = match path.canonicalize() {
+            Ok(p) => p,
+            Err(_) => {
+                // If canonicalization fails, try to use the path as-is
+                // but ensure it's absolute
+                if path.is_absolute() {
+                    path.to_path_buf()
+                } else {
+                    std::env::current_dir()?.join(path)
+                }
+            }
+        };
+
         use std::ffi::CString;
         use std::mem;
         use std::os::raw::{c_char, c_int};
@@ -214,7 +228,12 @@ impl SystemDetector {
             fn statvfs(path: *const c_char, buf: *mut Statvfs) -> c_int;
         }
 
-        let path_cstring = CString::new(path.to_string_lossy().as_bytes())?;
+        // Convert path to string and handle potential null bytes
+        let path_str = canonical_path.to_string_lossy();
+        let path_bytes: Vec<u8> = path_str.bytes().filter(|&b| b != 0).collect();
+        let path_cstring = CString::new(path_bytes)
+            .map_err(|_| AsManError::General("Invalid path for disk space check".to_string()))?;
+
         let mut stat: Statvfs = unsafe { mem::zeroed() };
 
         let result = unsafe { statvfs(path_cstring.as_ptr(), &mut stat) };
@@ -337,7 +356,7 @@ impl SystemDetector {
 
     /// Get list of required system tools for macOS
     fn get_required_tools() -> Vec<&'static str> {
-        vec!["cp", "rm", "hdiutil", "codesign"]
+        vec!["ditto", "rm", "hdiutil", "codesign"]
     }
 
     /// Check if a tool is available in PATH
