@@ -31,7 +31,7 @@ fn test_version_output() {
 #[test]
 fn test_list_help() {
     let mut cmd = Command::cargo_bin("as-man").unwrap();
-    let output = cmd.args(&["list", "--help"]).output().unwrap();
+    let output = cmd.args(["list", "--help"]).output().unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -43,7 +43,7 @@ fn test_list_help() {
 #[test]
 fn test_download_help() {
     let mut cmd = Command::cargo_bin("as-man").unwrap();
-    let output = cmd.args(&["download", "--help"]).output().unwrap();
+    let output = cmd.args(["download", "--help"]).output().unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -55,7 +55,7 @@ fn test_download_help() {
 #[test]
 fn test_install_help() {
     let mut cmd = Command::cargo_bin("as-man").unwrap();
-    let output = cmd.args(&["install", "--help"]).output().unwrap();
+    let output = cmd.args(["install", "--help"]).output().unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -67,7 +67,7 @@ fn test_install_help() {
 #[test]
 fn test_installed_help() {
     let mut cmd = Command::cargo_bin("as-man").unwrap();
-    let output = cmd.args(&["installed", "--help"]).output().unwrap();
+    let output = cmd.args(["installed", "--help"]).output().unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -79,7 +79,7 @@ fn test_installed_help() {
 #[test]
 fn test_use_help() {
     let mut cmd = Command::cargo_bin("as-man").unwrap();
-    let output = cmd.args(&["use", "--help"]).output().unwrap();
+    let output = cmd.args(["use", "--help"]).output().unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -91,7 +91,7 @@ fn test_use_help() {
 #[test]
 fn test_uninstall_help() {
     let mut cmd = Command::cargo_bin("as-man").unwrap();
-    let output = cmd.args(&["uninstall", "--help"]).output().unwrap();
+    let output = cmd.args(["uninstall", "--help"]).output().unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -103,7 +103,7 @@ fn test_uninstall_help() {
 #[test]
 fn test_which_help() {
     let mut cmd = Command::cargo_bin("as-man").unwrap();
-    let output = cmd.args(&["which", "--help"]).output().unwrap();
+    let output = cmd.args(["which", "--help"]).output().unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -115,7 +115,7 @@ fn test_which_help() {
 #[test]
 fn test_update_help() {
     let mut cmd = Command::cargo_bin("as-man").unwrap();
-    let output = cmd.args(&["update", "--help"]).output().unwrap();
+    let output = cmd.args(["update", "--help"]).output().unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);

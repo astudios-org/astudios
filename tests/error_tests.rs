@@ -176,7 +176,7 @@ fn test_error_categorization() {
                     | AsManError::Download(_)
             );
 
-            let variant_name = format!("{:?}", e)
+            let variant_name = format!("{e:?}")
                 .split('(')
                 .next()
                 .unwrap_or("Unknown")

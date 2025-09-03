@@ -25,7 +25,7 @@ fn test_android_studio_model() {
 /// Test ReleaseChannel enum variants
 #[test]
 fn test_release_channels() {
-    let channels = vec![
+    let channels = [
         ReleaseChannel::Release,
         ReleaseChannel::Beta,
         ReleaseChannel::Canary,
@@ -34,7 +34,7 @@ fn test_release_channels() {
     ];
 
     // Since ReleaseChannel doesn't implement Serialize, we'll test the string representations
-    let channel_strings: Vec<String> = channels.iter().map(|c| format!("{:?}", c)).collect();
+    let channel_strings: Vec<String> = channels.iter().map(|c| format!("{c:?}")).collect();
     assert_yaml_snapshot!("release_channels", channel_strings);
 }
 

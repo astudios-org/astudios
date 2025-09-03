@@ -1,0 +1,162 @@
+name: CI
+
+# Trigger conditions: push to main branch or pull request to main branch
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Set environment variables
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Code checking and testing job
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Test multiple Rust versions to ensure compatibility
+        rust: [stable, beta]
+        include:
+          - rust: stable
+            # Only run coverage check on stable version
+            coverage: true
+    
+    steps:
+    # Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Install Rust toolchain
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt, clippy
+
+    # Cache Cargo dependencies to speed up builds
+    - name: Cache Cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ matrix.rust }}-
+          ${{ runner.os }}-cargo-
+
+    # Check code syntax and types
+    - name: Check code
+      run: cargo check --verbose
+
+    # Check code formatting
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+
+    # Run Clippy code quality checks
+    - name: Run Clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+    # Build project
+    - name: Build
+      run: cargo build --verbose
+
+    # Run tests
+    - name: Run tests
+      run: cargo test --verbose
+
+    # Run documentation tests
+    - name: Test documentation
+      run: cargo test --doc
+
+    # Check documentation build
+    - name: Check documentation
+      run: cargo doc --no-deps --document-private-items
+
+  # Security audit job
+  security_audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+
+    - name: Run security audit
+      run: cargo audit
+
+  # Cross-platform build testing
+  cross_platform:
+    name: Cross Platform Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+
+    - name: Cache Cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+
+    # Build on different platforms
+    - name: Build on ${{ matrix.os }}
+      run: cargo build --release
+
+    # Run basic tests to ensure cross-platform compatibility
+    - name: Test on ${{ matrix.os }}
+      run: cargo test
+
+  # Minimum Supported Rust Version (MSRV) check
+  msrv:
+    name: Minimum Supported Rust Version
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Based on edition = "2024" in Cargo.toml, use corresponding minimum Rust version
+    - name: Install MSRV Rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        # Rust 2024 edition requires Rust 1.85+
+        toolchain: "1.85"
+
+    - name: Cache Cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-msrv-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Check with MSRV
+      run: cargo check
+
+    - name: Test with MSRV
+      run: cargo test

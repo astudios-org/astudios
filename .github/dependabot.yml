@@ -1,0 +1,51 @@
+# Dependabot configuration file
+# Automatically check and update project dependencies
+
+version: 2
+updates:
+  # Cargo dependency updates
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    # Auto-merge patch version updates
+    open-pull-requests-limit: 10
+    reviewers:
+      - "Binlogo"
+    assignees:
+      - "Binlogo"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    # Dependency update grouping
+    groups:
+      # Group all patch updates into one PR
+      patch-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+      # Group development dependency updates
+      dev-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "development"
+
+  # GitHub Actions workflow updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    reviewers:
+      - "Binlogo"
+    assignees:
+      - "Binlogo"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
