@@ -1,0 +1,28 @@
+---
+source: tests/model_tests.rs
+expression: studio_list
+---
+"@version": "1.0"
+item:
+  - name: Android Studio Hedgehog
+    build: AI-231.9392.1.2311.11076708
+    version: 2023.1.1
+    channel: Release
+    platformBuild: 231.9392.1
+    platformVersion: 2023.1.1
+    date: 2023-07-26
+    download:
+      - link: "https://example.com/android-studio-mac.dmg"
+        size: "1024000000"
+        checksum: abc123def456
+  - name: Android Studio Iguana
+    build: AI-232.1234.5.2321.11234567
+    version: 2023.2.1
+    channel: Beta
+    platformBuild: 232.1234.5
+    platformVersion: 2023.2.1
+    date: 2023-08-15
+    download:
+      - link: "https://example.com/android-studio-beta-mac.dmg"
+        size: "1100000000"
+        checksum: def456ghi789

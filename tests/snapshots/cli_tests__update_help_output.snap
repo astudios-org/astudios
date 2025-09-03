@@ -1,0 +1,10 @@
+---
+source: tests/cli_tests.rs
+expression: stdout
+---
+Update the local releases cache
+
+Usage: as-man update
+
+Options:
+  -h, --help  Print help

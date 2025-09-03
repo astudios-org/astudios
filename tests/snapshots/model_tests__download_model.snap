@@ -1,0 +1,7 @@
+---
+source: tests/model_tests.rs
+expression: download
+---
+link: "https://dl.google.com/dl/android/studio/install/2023.1.1.23/android-studio-2023.1.1.23-mac_arm.dmg"
+size: "1073741824"
+checksum: "sha256:abcdef1234567890"

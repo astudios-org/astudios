@@ -1,0 +1,16 @@
+---
+source: tests/model_tests.rs
+expression: results
+---
+- - Release
+  - Release
+- - Beta
+  - Beta
+- - Canary
+  - Canary
+- - RC
+  - ReleaseCandidate
+- - Patch
+  - Patch
+- - Unknown
+  - Release

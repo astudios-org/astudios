@@ -1,0 +1,16 @@
+---
+source: tests/cli_tests.rs
+expression: stdout
+---
+Install a specific Android Studio version to ~/.as-man/versions and /Applications
+
+Usage: as-man install [OPTIONS] [VERSION]
+
+Arguments:
+  [VERSION]  Version to install (e.g., "2024.3.2.14", "Android Studio Meerkat Feature Drop", "2023.3.1 Canary 8")
+
+Options:
+      --latest                 Install the latest available version
+  -d, --directory <DIRECTORY>  Custom installation directory (default: /Applications)
+      --skip-checks            Skip prerequisite checks (not recommended)
+  -h, --help                   Print help

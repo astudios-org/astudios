@@ -1,0 +1,16 @@
+---
+source: tests/cli_tests.rs
+expression: stdout
+---
+Download a specific version of Android Studio
+
+Usage: as-man download [OPTIONS] [VERSION]
+
+Arguments:
+  [VERSION]  Version to download (e.g., "Hedgehog", "2022.3.1")
+
+Options:
+      --latest                 Download the latest stable release version available
+      --latest-prerelease      Download the latest pre-release version available (Canary or Beta)
+      --directory <DIRECTORY>  The directory to download the archive to. Defaults to ~/.as-man/versions/{version}
+  -h, --help                   Print help

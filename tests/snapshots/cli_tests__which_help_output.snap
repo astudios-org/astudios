@@ -1,0 +1,10 @@
+---
+source: tests/cli_tests.rs
+expression: stdout
+---
+Show which version is currently active
+
+Usage: as-man which
+
+Options:
+  -h, --help  Print help

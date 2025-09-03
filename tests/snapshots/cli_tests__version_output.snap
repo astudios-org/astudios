@@ -1,0 +1,5 @@
+---
+source: tests/cli_tests.rs
+expression: stdout
+---
+as-man 0.1.0

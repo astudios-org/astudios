@@ -1,0 +1,12 @@
+---
+source: tests/model_tests.rs
+expression: version_info
+---
+- - display_version
+  - 2023.1.1 (AI-231.9392.1.2311.11076708)
+- - identifier
+  - AI-231.9392.1.2311.11076708
+- - is_stable
+  - "true"
+- - to_string
+  - 2023.1.1 (AI-231.9392.1.2311.11076708)

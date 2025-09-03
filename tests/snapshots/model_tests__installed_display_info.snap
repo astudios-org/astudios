@@ -1,0 +1,10 @@
+---
+source: tests/model_tests.rs
+expression: display_info
+---
+- - display_name
+  - Android Studio 2023.1.1
+- - identifier
+  - AI-231.9392.1.2311.11076708
+- - path
+  - /Applications/Android Studio Hedgehog.app

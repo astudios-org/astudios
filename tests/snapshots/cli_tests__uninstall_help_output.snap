@@ -1,0 +1,13 @@
+---
+source: tests/cli_tests.rs
+expression: stdout
+---
+Uninstall a specific Android Studio version
+
+Usage: as-man uninstall <VERSION>
+
+Arguments:
+  <VERSION>  Version to uninstall
+
+Options:
+  -h, --help  Print help

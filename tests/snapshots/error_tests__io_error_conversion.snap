@@ -1,0 +1,10 @@
+---
+source: tests/error_tests.rs
+expression: error_info
+---
+- - type
+  - IoError
+- - contains_io
+  - "true"
+- - contains_not_found
+  - "true"

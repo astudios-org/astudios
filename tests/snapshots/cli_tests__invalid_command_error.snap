@@ -1,0 +1,9 @@
+---
+source: tests/cli_tests.rs
+expression: stderr
+---
+error: unrecognized subcommand 'invalid-command'
+
+Usage: as-man <COMMAND>
+
+For more information, try '--help'.

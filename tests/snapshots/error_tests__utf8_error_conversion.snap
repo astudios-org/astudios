@@ -1,0 +1,8 @@
+---
+source: tests/error_tests.rs
+expression: error_info
+---
+- - type
+  - Utf8Error
+- - contains_utf8
+  - "true"

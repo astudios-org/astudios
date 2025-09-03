@@ -1,0 +1,9 @@
+---
+source: tests/model_tests.rs
+expression: channel_strings
+---
+- Release
+- Beta
+- Canary
+- ReleaseCandidate
+- Patch

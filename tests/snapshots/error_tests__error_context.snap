@@ -1,0 +1,16 @@
+---
+source: tests/error_tests.rs
+expression: context_info
+---
+- - download_failure
+  - "Download error: Failed to download Android Studio 2023.1.1: Connection timeout"
+- - installation_failure
+  - "Installation error: Failed to install to /Applications: Permission denied"
+- - extraction_failure
+  - "Extraction error: Failed to extract DMG: Invalid archive format"
+- - prerequisite_failure
+  - "Prerequisite not met: System requirements not met: macOS 10.14+ required"
+- - version_not_found
+  - "Version '2023.1.1' not found"
+- - permission_denied
+  - "Permission denied: Cannot write to /Applications directory"

@@ -1,0 +1,16 @@
+---
+source: tests/model_tests.rs
+expression: channel_results
+---
+- - stable_is_release
+  - true
+- - stable_is_beta
+  - false
+- - beta_is_release
+  - false
+- - beta_is_beta
+  - true
+- - canary_is_release
+  - false
+- - canary_is_canary
+  - true

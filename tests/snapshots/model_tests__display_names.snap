@@ -1,0 +1,10 @@
+---
+source: tests/model_tests.rs
+expression: display_names
+---
+- - stable
+  - Android Studio Hedgehog
+- - beta
+  - Android Studio Iguana (Beta)
+- - canary
+  - Android Studio Jellyfish (Canary)

@@ -1,0 +1,15 @@
+---
+source: tests/model_tests.rs
+expression: android_studio
+---
+name: Android Studio Hedgehog
+build: AI-231.9392.1.2311.11076708
+version: 2023.1.1
+channel: Release
+platformBuild: 231.9392.1
+platformVersion: 2023.1.1
+date: 2023-07-26
+download:
+  - link: "https://example.com/android-studio-mac.dmg"
+    size: "1024000000"
+    checksum: abc123def456

@@ -1,0 +1,10 @@
+---
+source: tests/cli_tests.rs
+expression: stdout
+---
+Show currently installed versions
+
+Usage: as-man installed
+
+Options:
+  -h, --help  Print help

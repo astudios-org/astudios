@@ -1,0 +1,15 @@
+---
+source: tests/cli_tests.rs
+expression: stdout
+---
+List available Android Studio versions
+
+Usage: as-man list [OPTIONS]
+
+Options:
+      --release        Show only release versions
+      --beta           Show only beta versions
+      --canary         Show only canary versions
+  -l, --limit <LIMIT>  Limit the number of results
+      --all-platforms  Show download information for all platforms instead of just the current platform
+  -h, --help           Print help

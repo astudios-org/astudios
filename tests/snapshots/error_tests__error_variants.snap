@@ -1,0 +1,34 @@
+---
+source: tests/error_tests.rs
+expression: error_messages
+---
+- - General
+  - "Error: General error message"
+- - VersionNotFound
+  - "Version '2023.1.1' not found"
+- - Download
+  - "Download error: Download failed"
+- - Installation
+  - "Installation error: Installation failed"
+- - Extraction
+  - "Extraction error: Extraction failed"
+- - Config
+  - "Configuration error: Configuration error"
+- - PrerequisiteNotMet
+  - "Prerequisite not met: Prerequisite check failed"
+- - InsufficientResources
+  - "Insufficient resources: Not enough resources"
+- - PermissionDenied
+  - "Permission denied: Permission denied"
+- - NetworkUnavailable
+  - "Network unavailable: Network timeout"
+- - Path
+  - "Path error: Invalid path"
+- - Platform
+  - "Platform error: Platform error"
+- - Cache
+  - "Cache error: Cache error"
+- - Parse
+  - "Parse error: Parse error"
+- - DownloaderNotFound
+  - "Downloader not found: aria2 not found"

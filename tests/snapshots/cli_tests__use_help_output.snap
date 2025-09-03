@@ -1,0 +1,13 @@
+---
+source: tests/cli_tests.rs
+expression: stdout
+---
+Switch to a different Android Studio version
+
+Usage: as-man use <VERSION>
+
+Arguments:
+  <VERSION>  Version to switch to
+
+Options:
+  -h, --help  Print help

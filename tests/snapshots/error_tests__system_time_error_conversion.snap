@@ -1,0 +1,8 @@
+---
+source: tests/error_tests.rs
+expression: error_info
+---
+- - type
+  - SystemTimeError
+- - contains_time
+  - "true"

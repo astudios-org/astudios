@@ -1,0 +1,40 @@
+---
+source: tests/error_tests.rs
+expression: categorized_errors
+---
+- - NetworkUnavailable
+  - true
+  - false
+  - true
+- - Download
+  - false
+  - false
+  - true
+- - Installation
+  - false
+  - false
+  - false
+- - PermissionDenied
+  - false
+  - true
+  - false
+- - InsufficientResources
+  - false
+  - true
+  - false
+- - Config
+  - false
+  - true
+  - false
+- - General
+  - false
+  - false
+  - false
+- - VersionNotFound
+  - false
+  - false
+  - false
+- - PrerequisiteNotMet
+  - false
+  - true
+  - false
