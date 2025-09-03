@@ -137,7 +137,7 @@ impl CommandHandler {
         };
 
         println!(
-            "{} {} ({}",
+            "{} {} ({})",
             ">".dimmed(),
             item.version.bold(),
             channel_color
