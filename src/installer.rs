@@ -2,7 +2,6 @@ use crate::{config::Config, detector::SystemDetector, downloader::Downloader, er
 use colored::Colorize;
 use std::{
     fs,
-    io::{self},
     path::{Path, PathBuf},
     process::Command,
 };
@@ -10,9 +9,6 @@ use std::{
 /// Archive extraction support
 #[derive(Debug, Clone, Copy)]
 pub enum ArchiveType {
-    Zip,
-    Tar,
-    TarGz,
     Dmg,
     Unsupported,
 }
@@ -180,13 +176,10 @@ impl Installer {
         let archive_type = self.detect_archive_type(archive_path);
 
         match archive_type {
-            ArchiveType::Zip => self.extract_zip(archive_path, &extract_dir)?,
-            ArchiveType::Tar => self.extract_tar(archive_path, &extract_dir)?,
-            ArchiveType::TarGz => self.extract_tar_gz(archive_path, &extract_dir)?,
             ArchiveType::Dmg => self.extract_dmg(archive_path, &extract_dir)?,
             ArchiveType::Unsupported => {
                 return Err(AsManError::Extraction(format!(
-                    "Unsupported archive format: {}",
+                    "Unsupported archive format: {}. Only DMG files are supported on macOS.",
                     archive_path.display()
                 )));
             }
@@ -198,68 +191,15 @@ impl Installer {
     /// Detect archive type from file extension
     fn detect_archive_type(&self, path: &Path) -> ArchiveType {
         let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-        let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
-        if file_name.ends_with(".tar.gz") || file_name.ends_with(".tgz") {
-            ArchiveType::TarGz
-        } else if file_name.ends_with(".dmg") {
+        if file_name.ends_with(".dmg") {
             ArchiveType::Dmg
-        } else if extension == "zip" {
-            ArchiveType::Zip
-        } else if extension == "tar" {
-            ArchiveType::Tar
         } else {
             ArchiveType::Unsupported
         }
     }
 
-    /// Extract ZIP archive
-    fn extract_zip(&self, archive_path: &Path, destination: &Path) -> Result<(), AsManError> {
-        let file = fs::File::open(archive_path)?;
-        let mut archive = zip::ZipArchive::new(file)?;
-
-        for i in 0..archive.len() {
-            let mut file = archive.by_index(i)?;
-            let outpath = match file.enclosed_name() {
-                Some(path) => destination.join(path),
-                None => continue,
-            };
-
-            if file.is_dir() {
-                fs::create_dir_all(&outpath)?;
-            } else {
-                if let Some(p) = outpath.parent() {
-                    if !p.exists() {
-                        fs::create_dir_all(p)?;
-                    }
-                }
-                let mut outfile = fs::File::create(outpath)?;
-                io::copy(&mut file, &mut outfile)?;
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Extract TAR archive
-    fn extract_tar(&self, archive_path: &Path, destination: &Path) -> Result<(), AsManError> {
-        let file = fs::File::open(archive_path)?;
-        let mut archive = tar::Archive::new(file);
-        archive.unpack(destination)?;
-        Ok(())
-    }
-
-    /// Extract TAR.GZ archive
-    fn extract_tar_gz(&self, archive_path: &Path, destination: &Path) -> Result<(), AsManError> {
-        let file = fs::File::open(archive_path)?;
-        let tar = flate2::read::GzDecoder::new(file);
-        let mut archive = tar::Archive::new(tar);
-        archive.unpack(destination)?;
-        Ok(())
-    }
-
     /// Extract DMG archive (macOS only)
-    #[cfg(target_os = "macos")]
     fn extract_dmg(&self, archive_path: &Path, destination: &Path) -> Result<(), AsManError> {
         let temp_mount = tempfile::tempdir()?;
         let mount_point = temp_mount.path();
@@ -363,16 +303,7 @@ impl Installer {
         Ok(())
     }
 
-    /// Extract DMG on non-macOS platforms (placeholder)
-    #[cfg(not(target_os = "macos"))]
-    fn extract_dmg(&self, _archive_path: &Path, _destination: &Path) -> Result<(), AsManError> {
-        Err(AsManError::Platform(
-            "DMG extraction only supported on macOS".to_string(),
-        ))
-    }
-
     /// Detach DMG volume
-    #[cfg(target_os = "macos")]
     fn detach_dmg(&self, mount_point: &Path) -> Result<(), AsManError> {
         let output = Command::new("hdiutil")
             .args(["detach", mount_point.to_str().unwrap(), "-force"])
@@ -477,18 +408,15 @@ impl Installer {
             }
         }
 
-        // Verify code signing on macOS
-        #[cfg(target_os = "macos")]
-        {
-            let status = Command::new("codesign")
-                .args(["-v", app_path.to_str().unwrap()])
-                .status()?;
+        // Verify code signing
+        let status = Command::new("codesign")
+            .args(["-v", app_path.to_str().unwrap()])
+            .status()?;
 
-            if !status.success() {
-                return Err(AsManError::Installation(
-                    "Code signing verification failed".to_string(),
-                ));
-            }
+        if !status.success() {
+            return Err(AsManError::Installation(
+                "Code signing verification failed".to_string(),
+            ));
         }
 
         Ok(())
@@ -507,16 +435,8 @@ impl Installer {
             }
         }
 
-        // Create new symlink
-        #[cfg(unix)]
-        {
-            std::os::unix::fs::symlink(app_path, &symlink_path)?;
-        }
-
-        #[cfg(windows)]
-        {
-            std::os::windows::fs::symlink_dir(app_path, &symlink_path)?;
-        }
+        // Create new symlink (macOS/Unix)
+        std::os::unix::fs::symlink(app_path, &symlink_path)?;
 
         Ok(())
     }

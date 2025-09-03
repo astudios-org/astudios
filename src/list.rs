@@ -206,14 +206,6 @@ impl AndroidStudioLister {
 
     /// Get the current platform name for display purposes
     pub fn get_current_platform_name() -> &'static str {
-        if cfg!(target_os = "macos") {
-            "macOS"
-        } else if cfg!(target_os = "windows") {
-            "Windows"
-        } else if cfg!(target_os = "linux") {
-            "Linux"
-        } else {
-            "Unknown"
-        }
+        "macOS"
     }
 }

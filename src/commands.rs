@@ -121,13 +121,13 @@ impl CommandHandler {
         }
 
         for item in display_items.iter().rev() {
-            Self::print_version_info(item, all_platforms);
+            Self::print_version_info(item);
         }
 
         Ok(())
     }
 
-    fn print_version_info(item: &AndroidStudio, show_all_platforms: bool) {
+    fn print_version_info(item: &AndroidStudio) {
         let channel_color = match item.channel_type() {
             ReleaseChannel::Release => "Release".green(),
             ReleaseChannel::Beta => "Beta".yellow(),
@@ -146,49 +146,16 @@ impl CommandHandler {
         println!("  {} {}", "Build:".dimmed(), item.build);
         println!("  {} {}", "Date:".dimmed(), item.date);
 
-        // Show platform-specific download information
-        if show_all_platforms {
-            // Show all platforms when flag is set
-            if let Some(download) = item.get_macos_download() {
-                println!(
-                    "  {} {} ({})",
-                    "macOS:".dimmed(),
-                    "Available".green(),
-                    download.size
-                );
-            }
-            if let Some(download) = item.get_windows_download() {
-                println!(
-                    "  {} {} ({})",
-                    "Windows:".dimmed(),
-                    "Available".green(),
-                    download.size
-                );
-            }
-            if let Some(download) = item.get_linux_download() {
-                println!(
-                    "  {} {} ({})",
-                    "Linux:".dimmed(),
-                    "Available".green(),
-                    download.size
-                );
-            }
+        // Show download information for macOS
+        if let Some(download) = item.get_platform_download() {
+            println!(
+                "  {} {} ({})",
+                "macOS:".dimmed(),
+                "Available".green(),
+                download.size
+            );
         } else {
-            // Show only current platform
-            if let Some(download) = item.get_platform_download() {
-                println!(
-                    "  {} {} ({})",
-                    format!("{}:", AndroidStudioLister::get_current_platform_name()).dimmed(),
-                    "Available".green(),
-                    download.size
-                );
-            } else {
-                println!(
-                    "  {} {}",
-                    format!("{}:", AndroidStudioLister::get_current_platform_name()).dimmed(),
-                    "Not Available".red()
-                );
-            }
+            println!("  {} {}", "macOS:".dimmed(), "Not Available".red());
         }
 
         println!();

@@ -89,66 +89,45 @@ impl SystemDetector {
         Ok(result)
     }
 
-    /// Check if the current platform is supported
+    /// Check if the current platform is supported (macOS only)
     fn check_platform_compatibility(result: &mut DetectionResult) -> Result<bool, AsManError> {
         let os = std::env::consts::OS;
         let arch = std::env::consts::ARCH;
 
-        match os {
-            "macos" => {
-                if arch != "x86_64" && arch != "aarch64" {
-                    result.add_issue(format!(
-                        "Unsupported architecture: {arch}. Android Studio requires x86_64 or aarch64 on macOS."
-                    ));
-                    return Ok(false);
-                }
+        if os != "macos" {
+            result.add_issue(format!(
+                "Unsupported operating system: {os}. This tool only supports macOS."
+            ));
+            return Ok(false);
+        }
 
-                // Check macOS version
-                if let Ok(output) = Command::new("sw_vers").arg("-productVersion").output() {
-                    let version = String::from_utf8_lossy(&output.stdout);
-                    let version = version.trim();
+        if arch != "x86_64" && arch != "aarch64" {
+            result.add_issue(format!(
+                "Unsupported architecture: {arch}. Android Studio requires x86_64 or aarch64 on macOS."
+            ));
+            return Ok(false);
+        }
 
-                    // Parse version and check if it's at least macOS 10.14
-                    if let Some(major_minor) =
-                        version.split('.').take(2).collect::<Vec<_>>().get(0..2)
-                    {
-                        if let (Ok(major), Ok(minor)) =
-                            (major_minor[0].parse::<u32>(), major_minor[1].parse::<u32>())
-                        {
-                            if major < 10 || (major == 10 && minor < 14) {
-                                result.add_issue(format!(
-                                    "macOS version {version} is not supported. Android Studio requires macOS 10.14 or later."
-                                ));
-                                return Ok(false);
-                            }
-                        }
+        // Check macOS version
+        if let Ok(output) = Command::new("sw_vers").arg("-productVersion").output() {
+            let version = String::from_utf8_lossy(&output.stdout);
+            let version = version.trim();
+
+            // Parse version and check if it's at least macOS 10.14
+            if let Some(major_minor) = version.split('.').take(2).collect::<Vec<_>>().get(0..2) {
+                if let (Ok(major), Ok(minor)) =
+                    (major_minor[0].parse::<u32>(), major_minor[1].parse::<u32>())
+                {
+                    if major < 10 || (major == 10 && minor < 14) {
+                        result.add_issue(format!(
+                            "macOS version {version} is not supported. Android Studio requires macOS 10.14 or later."
+                        ));
+                        return Ok(false);
                     }
-                } else {
-                    result.add_warning("Could not determine macOS version".to_string());
                 }
             }
-            "windows" => {
-                if arch != "x86_64" {
-                    result.add_issue(format!(
-                        "Unsupported architecture: {arch}. Android Studio requires x86_64 on Windows."
-                    ));
-                    return Ok(false);
-                }
-            }
-            "linux" => {
-                if arch != "x86_64" {
-                    result.add_issue(format!(
-                        "Unsupported architecture: {arch}. Android Studio requires x86_64 on Linux."
-                    ));
-                    return Ok(false);
-                }
-            }
-            _ => {
-                result.add_issue(format!(
-                    "Unsupported operating system: {os}. Android Studio supports macOS, Windows, and Linux."
-                ));
-                return Ok(false);
-            }
+        } else {
+            result.add_warning("Could not determine macOS version".to_string());
         }
 
         Ok(true)
@@ -205,89 +184,47 @@ impl SystemDetector {
         Ok(true)
     }
 
-    /// Get available disk space for a given path
+    /// Get available disk space for a given path (macOS/Unix)
     fn get_available_space(path: &Path) -> Result<u64, AsManError> {
         // Create the directory if it doesn't exist to check space
         if !path.exists() {
             fs::create_dir_all(path)?;
         }
 
-        #[cfg(unix)]
-        {
-            use std::ffi::CString;
-            use std::mem;
-            use std::os::raw::{c_char, c_int};
+        use std::ffi::CString;
+        use std::mem;
+        use std::os::raw::{c_char, c_int};
 
-            #[repr(C)]
-            struct Statvfs {
-                f_bsize: u64,
-                f_frsize: u64,
-                f_blocks: u64,
-                f_bfree: u64,
-                f_bavail: u64,
-                f_files: u64,
-                f_ffree: u64,
-                f_favail: u64,
-                f_fsid: u64,
-                f_flag: u64,
-                f_namemax: u64,
-            }
-
-            unsafe extern "C" {
-                fn statvfs(path: *const c_char, buf: *mut Statvfs) -> c_int;
-            }
-
-            let path_cstring = CString::new(path.to_string_lossy().as_bytes())?;
-            let mut stat: Statvfs = unsafe { mem::zeroed() };
-
-            let result = unsafe { statvfs(path_cstring.as_ptr(), &mut stat) };
-
-            if result == 0 {
-                stat.f_bavail.checked_mul(stat.f_frsize).ok_or_else(|| {
-                    AsManError::General("Disk space calculation overflow".to_string())
-                })
-            } else {
-                Err(AsManError::General("Failed to get disk space".to_string()))
-            }
+        #[repr(C)]
+        struct Statvfs {
+            f_bsize: u64,
+            f_frsize: u64,
+            f_blocks: u64,
+            f_bfree: u64,
+            f_bavail: u64,
+            f_files: u64,
+            f_ffree: u64,
+            f_favail: u64,
+            f_fsid: u64,
+            f_flag: u64,
+            f_namemax: u64,
         }
 
-        #[cfg(windows)]
-        {
-            use std::ffi::OsStr;
-            use std::os::windows::ffi::OsStrExt;
+        unsafe extern "C" {
+            fn statvfs(path: *const c_char, buf: *mut Statvfs) -> c_int;
+        }
 
-            unsafe extern "system" {
-                fn GetDiskFreeSpaceExW(
-                    lpDirectoryName: *const u16,
-                    lpFreeBytesAvailableToCaller: *mut u64,
-                    lpTotalNumberOfBytes: *mut u64,
-                    lpTotalNumberOfFreeBytes: *mut u64,
-                ) -> i32;
-            }
+        let path_cstring = CString::new(path.to_string_lossy().as_bytes())?;
+        let mut stat: Statvfs = unsafe { mem::zeroed() };
 
-            let path_wide: Vec<u16> = OsStr::new(&path.to_string_lossy())
-                .encode_wide()
-                .chain(std::iter::once(0))
-                .collect();
+        let result = unsafe { statvfs(path_cstring.as_ptr(), &mut stat) };
 
-            let mut free_bytes = 0u64;
-            let mut total_bytes = 0u64;
-            let mut total_free_bytes = 0u64;
-
-            let result = unsafe {
-                GetDiskFreeSpaceExW(
-                    path_wide.as_ptr(),
-                    &mut free_bytes,
-                    &mut total_bytes,
-                    &mut total_free_bytes,
-                )
-            };
-
-            if result != 0 {
-                Ok(free_bytes)
-            } else {
-                Err(AsManError::General("Failed to get disk space".to_string()))
-            }
+        if result == 0 {
+            stat.f_bavail
+                .checked_mul(stat.f_frsize)
+                .ok_or_else(|| AsManError::General("Disk space calculation overflow".to_string()))
+        } else {
+            Err(AsManError::General("Failed to get disk space".to_string()))
         }
     }
 
@@ -398,15 +335,9 @@ impl SystemDetector {
         Ok(dependencies_ok)
     }
 
-    /// Get list of required system tools based on platform
+    /// Get list of required system tools for macOS
     fn get_required_tools() -> Vec<&'static str> {
-        if cfg!(target_os = "macos") {
-            vec!["cp", "rm", "hdiutil", "codesign"]
-        } else if cfg!(target_os = "windows") {
-            vec![]
-        } else {
-            vec!["cp", "rm", "tar", "unzip"]
-        }
+        vec!["cp", "rm", "hdiutil", "codesign"]
     }
 
     /// Check if a tool is available in PATH
@@ -418,40 +349,18 @@ impl SystemDetector {
             .unwrap_or(false)
     }
 
-    /// Check for archive extraction tools
+    /// Check for archive extraction tools (macOS)
     fn check_archive_tools(result: &mut DetectionResult) -> Result<bool, AsManError> {
-        let mut tools_ok = true;
-
-        if cfg!(target_os = "macos") {
-            // On macOS, we need hdiutil for DMG files
-            if !Self::check_tool_available("hdiutil") {
-                result.add_issue(
-                    "hdiutil not found. This tool is required for extracting DMG files on macOS."
-                        .to_string(),
-                );
-                tools_ok = false;
-            }
-        } else if cfg!(target_os = "windows") {
-            // On Windows, we use built-in ZIP support
-        } else {
-            // On Linux, check for tar and unzip
-            if !Self::check_tool_available("tar") {
-                result.add_issue(
-                    "tar not found. This tool is required for extracting TAR.GZ files on Linux."
-                        .to_string(),
-                );
-                tools_ok = false;
-            }
-            if !Self::check_tool_available("unzip") {
-                result.add_issue(
-                    "unzip not found. This tool is required for extracting ZIP files on Linux."
-                        .to_string(),
-                );
-                tools_ok = false;
-            }
+        // On macOS, we need hdiutil for DMG files
+        if !Self::check_tool_available("hdiutil") {
+            result.add_issue(
+                "hdiutil not found. This tool is required for extracting DMG files on macOS."
+                    .to_string(),
+            );
+            return Ok(false);
         }
 
-        Ok(tools_ok)
+        Ok(true)
     }
 
     /// Check for Java runtime (optional but recommended)

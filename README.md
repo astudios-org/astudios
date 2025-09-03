@@ -1,6 +1,12 @@
 # as-man - Android Studio Manager
 
-A CLI tool inspired by [xcodes](https://github.com/XcodesOrg/xcodes), built specifically for managing Android Studio installations on your local machine.
+A CLI tool inspired by [xcodes](https://github.com/XcodesOrg/xcodes), built specifically for managing Android Studio installations on macOS.
+
+## Platform Support
+
+**Currently supports macOS only.** This tool is designed specifically for macOS and uses macOS-specific features like DMG mounting and app bundle management.
+
+We welcome community contributions to add support for other operating systems in the future. If you're interested in contributing Windows or Linux support, please feel free to open an issue or submit a pull request.
 
 ## Features
 
@@ -10,6 +16,13 @@ A CLI tool inspired by [xcodes](https://github.com/XcodesOrg/xcodes), built spec
 - **Multiple download methods**: Support for both built-in HTTP client and aria2 for faster downloads
 
 ## Installation
+
+### System Requirements
+
+- **macOS 10.14 or later**
+- **Architecture**: Intel (x86_64) or Apple Silicon (aarch64)
+- **Required tools**: `hdiutil`, `codesign`, `cp`, `rm` (usually pre-installed on macOS)
+- **Optional**: `aria2` for faster downloads (install via Homebrew: `brew install aria2`)
 
 ### Build from source
 ```bash
@@ -35,12 +48,9 @@ as-man install 2024.3.2.14
 
 # Install with custom directory
 as-man install 2024.3.2.14 --directory ~/Applications/Custom
-
-# Force use of specific downloader
-as-man install 2024.3.2.14 --downloader aria2
 ```
 
-If you have aria2 installed (it's available in Homebrew, apt, yum, etc.), then as-man will default to use it for downloads. This significantly speeds up the download process.
+If you have aria2 installed (available via Homebrew: `brew install aria2`), as-man will automatically use it for downloads, which significantly speeds up the download process.
 
 ### Switch between versions
 ```bash
@@ -73,9 +83,6 @@ as-man install --latest
 
 # Install a specific beta version
 as-man install "2024.3.1 Beta 2"
-
-# Install with aria2 for faster download
-as-man install 2024.3.2.14 --downloader aria2
 
 # Install to custom directory
 as-man install 2024.3.2.14 --directory ~/Applications

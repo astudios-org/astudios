@@ -99,27 +99,9 @@ impl AndroidStudio {
         self.downloads.iter().find(|d| d.link.contains("mac"))
     }
 
-    /// Get Windows download URL
-    pub fn get_windows_download(&self) -> Option<&Download> {
-        self.downloads.iter().find(|d| d.link.contains("windows"))
-    }
-
-    /// Get Linux download URL
-    pub fn get_linux_download(&self) -> Option<&Download> {
-        self.downloads.iter().find(|d| d.link.contains("linux"))
-    }
-
-    /// Get download URL for current platform
+    /// Get download URL for macOS
     pub fn get_platform_download(&self) -> Option<&Download> {
-        if cfg!(target_os = "macos") {
-            self.get_macos_download()
-        } else if cfg!(target_os = "windows") {
-            self.get_windows_download()
-        } else if cfg!(target_os = "linux") {
-            self.get_linux_download()
-        } else {
-            None
-        }
+        self.get_macos_download()
     }
 
     /// Get display name with channel indicator

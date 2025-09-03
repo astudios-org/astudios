@@ -83,29 +83,14 @@ impl Config {
         Self::MIN_RAM_GB
     }
 
-    /// Common aria2 executable paths by platform
+    /// Common aria2 executable paths for macOS
     pub fn aria2_search_paths() -> &'static [&'static str] {
-        if cfg!(target_os = "windows") {
-            &[
-                "C:\\Program Files\\aria2\\aria2c.exe",
-                "C:\\Program Files (x86)\\aria2\\aria2c.exe",
-                "aria2c.exe",
-            ]
-        } else if cfg!(target_os = "macos") {
-            &[
-                "/usr/local/bin/aria2c",
-                "/opt/homebrew/bin/aria2c",
-                "/usr/bin/aria2c",
-                "/bin/aria2c",
-                "aria2c",
-            ]
-        } else {
-            &[
-                "/usr/local/bin/aria2c",
-                "/usr/bin/aria2c",
-                "/bin/aria2c",
-                "aria2c",
-            ]
-        }
+        &[
+            "/usr/local/bin/aria2c",
+            "/opt/homebrew/bin/aria2c",
+            "/usr/bin/aria2c",
+            "/bin/aria2c",
+            "aria2c",
+        ]
     }
 }
