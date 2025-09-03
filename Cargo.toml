@@ -19,8 +19,6 @@ indicatif = "0.17"
 colored = "2.1"
 dirs = "5.0"
 zip = "2.2"
-tar = "0.4"
-flate2 = "1.0"
 tempfile = "3.8"
 plist = "1.7"
 

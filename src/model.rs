@@ -1,6 +1,6 @@
+use crate::error::AsManError;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use crate::error::AsManError;
 
 /// Root structure for Android Studio releases list
 #[derive(Debug, Deserialize, Serialize)]
@@ -164,7 +164,7 @@ impl AndroidStudioVersion {
 
     /// Check if this is a stable release (not beta, canary, etc.)
     pub fn is_stable(&self) -> bool {
-        !self.build_version.contains("Beta") 
+        !self.build_version.contains("Beta")
             && !self.build_version.contains("Canary")
             && !self.build_version.contains("RC")
     }
@@ -209,14 +209,15 @@ impl InstalledAndroidStudio {
     /// Parse version information from Android Studio metadata files
     fn parse_version_info(app_path: &Path) -> Result<AndroidStudioVersion, AsManError> {
         let contents_path = app_path.join("Contents");
-        
+
         // Parse Info.plist
         let info_plist_path = contents_path.join("Info.plist");
         let (short_version, build_version) = Self::parse_info_plist(&info_plist_path)?;
 
         // Parse product-info.json for additional details
         let product_info_path = contents_path.join("Resources").join("product-info.json");
-        let (product_name, product_code, build_number) = Self::parse_product_info(&product_info_path)?;
+        let (product_name, product_code, build_number) =
+            Self::parse_product_info(&product_info_path)?;
 
         Ok(AndroidStudioVersion::new(
             short_version,
@@ -238,7 +239,8 @@ impl InstalledAndroidStudio {
         let plist: Value = plist::from_reader(file)
             .map_err(|e| AsManError::General(format!("Failed to parse Info.plist: {e}")))?;
 
-        let dict = plist.as_dictionary()
+        let dict = plist
+            .as_dictionary()
             .ok_or_else(|| AsManError::General("Info.plist is not a dictionary".to_string()))?;
 
         // Extract CFBundleShortVersionString
@@ -262,14 +264,18 @@ impl InstalledAndroidStudio {
             .unwrap_or("");
 
         if !bundle_id.contains("android.studio") {
-            return Err(AsManError::General("Not an Android Studio application".to_string()));
+            return Err(AsManError::General(
+                "Not an Android Studio application".to_string(),
+            ));
         }
 
         Ok((short_version, build_version))
     }
 
     /// Parse product-info.json file for additional version information
-    fn parse_product_info(product_info_path: &Path) -> Result<(String, String, String), AsManError> {
+    fn parse_product_info(
+        product_info_path: &Path,
+    ) -> Result<(String, String, String), AsManError> {
         use std::fs;
 
         let content = fs::read_to_string(product_info_path)
@@ -287,7 +293,9 @@ impl InstalledAndroidStudio {
         let version = json
             .get("version")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| AsManError::General("Version not found in product-info.json".to_string()))?;
+            .ok_or_else(|| {
+                AsManError::General("Version not found in product-info.json".to_string())
+            })?;
 
         let build_number = json
             .get("buildNumber")
@@ -295,18 +303,17 @@ impl InstalledAndroidStudio {
             .unwrap_or(version);
 
         // Extract product code from version (e.g., "AI" from "AI-251.26094.121.2513.14007798")
-        let product_code = version
-            .split('-')
-            .next()
-            .unwrap_or("AI")
-            .to_string();
+        let product_code = version.split('-').next().unwrap_or("AI").to_string();
 
         Ok((product_name, product_code, build_number.to_string()))
     }
 
     /// Get the display name for this installation
     pub fn display_name(&self) -> String {
-        format!("{} {}", self.version.product_name, self.version.short_version)
+        format!(
+            "{} {}",
+            self.version.product_name, self.version.short_version
+        )
     }
 
     /// Get the unique identifier for this installation

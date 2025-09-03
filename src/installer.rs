@@ -1,4 +1,7 @@
-use crate::{config::Config, detector::SystemDetector, downloader::Downloader, error::AsManError, model::InstalledAndroidStudio};
+use crate::{
+    config::Config, detector::SystemDetector, downloader::Downloader, error::AsManError,
+    model::InstalledAndroidStudio,
+};
 use colored::Colorize;
 use std::{
     fs,
@@ -532,7 +535,7 @@ impl Installer {
             for entry in entries.filter_map(|e| e.ok()) {
                 let path = entry.path();
                 let name = path.file_name().unwrap_or_default().to_string_lossy();
-                
+
                 // Check if it's an Android Studio app bundle
                 if name.contains("Android Studio") && name.ends_with(".app") {
                     if let Ok(Some(installed)) = InstalledAndroidStudio::new(path) {
@@ -583,7 +586,7 @@ impl Installer {
     /// Switch to a different Android Studio installation by identifier
     pub fn switch_to_studio(&self, identifier: &str) -> Result<(), AsManError> {
         let installations = self.list_installed_studios()?;
-        
+
         // Find installation by identifier (build version) or short version
         let target_installation = installations
             .iter()

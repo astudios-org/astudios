@@ -349,7 +349,10 @@ impl CommandHandler {
                     installation.display_name().green(),
                     installation.identifier().blue()
                 );
-                println!("       Path: {}", installation.path.display().to_string().dimmed());
+                println!(
+                    "       Path: {}",
+                    installation.path.display().to_string().dimmed()
+                );
             }
         }
 
@@ -369,7 +372,10 @@ impl CommandHandler {
                     installation.display_name().green(),
                     installation.identifier().blue()
                 );
-                println!("   Path: {}", installation.path.display().to_string().dimmed());
+                println!(
+                    "   Path: {}",
+                    installation.path.display().to_string().dimmed()
+                );
             }
             None => {
                 println!(
