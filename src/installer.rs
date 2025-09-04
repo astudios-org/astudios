@@ -577,15 +577,14 @@ impl Installer {
         );
 
         // Check if this is the currently active version
-        if let Ok(Some(active)) = self.get_active_studio() {
-            if active.path == *app_path {
+        if let Ok(Some(active)) = self.get_active_studio()
+            && active.path == *app_path {
                 println!("Removing symlink for currently active version...");
                 let symlink_path = self.applications_dir.join("Android Studio.app");
                 if symlink_path.exists() || symlink_path.is_symlink() {
                     fs::remove_file(&symlink_path)?;
                 }
             }
-        }
 
         // Remove the application bundle
         if app_path.exists() {
@@ -653,13 +652,11 @@ impl Installer {
     pub fn get_active_studio(&self) -> Result<Option<InstalledAndroidStudio>, AstudiosError> {
         let symlink_path = self.applications_dir.join("Android Studio.app");
 
-        if symlink_path.exists() && symlink_path.is_symlink() {
-            if let Ok(target) = fs::read_link(&symlink_path) {
-                if let Ok(Some(installed)) = InstalledAndroidStudio::new(target) {
+        if symlink_path.exists() && symlink_path.is_symlink()
+            && let Ok(target) = fs::read_link(&symlink_path)
+                && let Ok(Some(installed)) = InstalledAndroidStudio::new(target) {
                     return Ok(Some(installed));
                 }
-            }
-        }
 
         Ok(None)
     }

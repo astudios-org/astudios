@@ -114,18 +114,15 @@ impl SystemDetector {
             let version = version.trim();
 
             // Parse version and check if it's at least macOS 10.14
-            if let Some(major_minor) = version.split('.').take(2).collect::<Vec<_>>().get(0..2) {
-                if let (Ok(major), Ok(minor)) =
+            if let Some(major_minor) = version.split('.').take(2).collect::<Vec<_>>().get(0..2)
+                && let (Ok(major), Ok(minor)) =
                     (major_minor[0].parse::<u32>(), major_minor[1].parse::<u32>())
-                {
-                    if major < 10 || (major == 10 && minor < 14) {
+                    && (major < 10 || (major == 10 && minor < 14)) {
                         result.add_issue(format!(
                             "macOS version {version} is not supported. Android Studio requires macOS 10.14 or later."
                         ));
                         return Ok(false);
                     }
-                }
-            }
         } else {
             result.add_warning("Could not determine macOS version".to_string());
         }
@@ -389,12 +386,11 @@ impl SystemDetector {
         let mut java_found = false;
 
         for cmd in java_commands {
-            if let Ok(output) = Command::new(cmd).arg("-version").output() {
-                if output.status.success() {
+            if let Ok(output) = Command::new(cmd).arg("-version").output()
+                && output.status.success() {
                     java_found = true;
                     break;
                 }
-            }
         }
 
         if !java_found {

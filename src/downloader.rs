@@ -33,19 +33,16 @@ impl Downloader {
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
                 .status()
-            {
-                if status.success() {
+                && status.success() {
                     return Ok(PathBuf::from(path_str));
                 }
-            }
 
             // Check if it's in PATH using 'which' command
-            if let Ok(output) = Command::new("which").arg(path_str).output() {
-                if output.status.success() {
+            if let Ok(output) = Command::new("which").arg(path_str).output()
+                && output.status.success() {
                     let path = String::from_utf8_lossy(&output.stdout);
                     return Ok(PathBuf::from(path.trim()));
                 }
-            }
         }
 
         Err(AstudiosError::DownloaderNotFound(
