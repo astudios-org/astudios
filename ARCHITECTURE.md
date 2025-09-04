@@ -71,7 +71,7 @@ The `downloader.rs` module supports:
 The `installer.rs` module provides:
 
 - **Multi-step Process**: Clear installation stages
-- **Platform Support**: macOS, Windows, and Linux support
+- **Platform Support**: macOS support currently (Windows, and Linux in the future)
 - **Archive Handling**: Support for ZIP, TAR, TAR.GZ, and DMG formats
 - **Cleanup**: Automatic cleanup of temporary files
 - **Verification**: Installation integrity verification
