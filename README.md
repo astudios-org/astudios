@@ -28,7 +28,7 @@ We welcome community contributions to add support for other operating systems in
 ```bash
 git clone https://github.com/Binlogo/astudios.git
 cd astudios
-cargo build --release
+cargo install --path .
 ```
 
 ## Usage

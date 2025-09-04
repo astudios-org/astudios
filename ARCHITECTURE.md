@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the architecture and design decisions of the astudios (Android Studio Manager) codebase.
+This document describes the architecture and design decisions of the astudios codebase.
 
 ## Architecture Goals
 
