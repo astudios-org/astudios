@@ -1,4 +1,4 @@
-# as-man - Android Studio Manager
+# astudios - Android Studio Manager
 
 A CLI tool inspired by [xcodes](https://github.com/XcodesOrg/xcodes), built specifically for managing Android Studio installations on macOS.
 
@@ -26,8 +26,8 @@ We welcome community contributions to add support for other operating systems in
 
 ### Build from source
 ```bash
-git clone https://github.com/Binlogo/as-man.git
-cd as-man
+git clone https://github.com/Binlogo/astudios.git
+cd astudios
 cargo build --release
 ```
 
@@ -35,57 +35,57 @@ cargo build --release
 
 ### List available versions
 ```bash
-as-man list
+astudios list
 ```
 
 ### Install a specific version
 ```bash
 # Install the latest version
-as-man install --latest
+astudios install --latest
 
 # Install a specific version
-as-man install 2024.3.2.14
+astudios install 2024.3.2.14
 
 # Install with custom directory
-as-man install 2024.3.2.14 --directory ~/Applications/Custom
+astudios install 2024.3.2.14 --directory ~/Applications/Custom
 ```
 
-If you have aria2 installed (available via Homebrew: `brew install aria2`), as-man will automatically use it for downloads, which significantly speeds up the download process.
+If you have aria2 installed (available via Homebrew: `brew install aria2`), astudios will automatically use it for downloads, which significantly speeds up the download process.
 
 ### Switch between versions
 ```bash
-as-man use 2024.3.2.14
+astudios use 2024.3.2.14
 ```
 
 ### Show installed versions
 ```bash
-as-man installed
+astudios installed
 ```
 
 ### Show current active version
 ```bash
-as-man which
+astudios which
 ```
 
 ### Uninstall a version
 ```bash
-as-man uninstall 2024.3.2.14
+astudios uninstall 2024.3.2.14
 ```
 
 ## Examples
 
 ```bash
 # List available versions
-as-man list --limit 10
+astudios list --limit 10
 
 # Install the latest release version
-as-man install --latest
+astudios install --latest
 
 # Install a specific beta version
-as-man install "2024.3.1 Beta 2"
+astudios install "2024.3.1 Beta 2"
 
 # Install to custom directory
-as-man install 2024.3.2.14 --directory ~/Applications
+astudios install 2024.3.2.14 --directory ~/Applications
 ```
 
 ## License

@@ -33,16 +33,18 @@ impl Downloader {
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
                 .status()
-                && status.success() {
-                    return Ok(PathBuf::from(path_str));
-                }
+                && status.success()
+            {
+                return Ok(PathBuf::from(path_str));
+            }
 
             // Check if it's in PATH using 'which' command
             if let Ok(output) = Command::new("which").arg(path_str).output()
-                && output.status.success() {
-                    let path = String::from_utf8_lossy(&output.stdout);
-                    return Ok(PathBuf::from(path.trim()));
-                }
+                && output.status.success()
+            {
+                let path = String::from_utf8_lossy(&output.stdout);
+                return Ok(PathBuf::from(path.trim()));
+            }
         }
 
         Err(AstudiosError::DownloaderNotFound(
@@ -105,11 +107,9 @@ impl Downloader {
             .arg("--dir")
             .arg(destination.parent().unwrap_or_else(|| Path::new(".")))
             .arg("--out")
-            .arg(
-                destination
-                    .file_name()
-                    .ok_or(AstudiosError::Path("Invalid destination filename".to_string()))?,
-            )
+            .arg(destination.file_name().ok_or(AstudiosError::Path(
+                "Invalid destination filename".to_string(),
+            ))?)
             .arg(format!(
                 "--max-connection-per-server={}",
                 Config::ARIA2_MAX_CONNECTIONS

@@ -59,7 +59,9 @@ impl AndroidStudioLister {
             .items
             .into_iter()
             .find(|item| item.is_release())
-            .ok_or_else(|| AstudiosError::VersionNotFound("No release versions available".to_string()))
+            .ok_or_else(|| {
+                AstudiosError::VersionNotFound("No release versions available".to_string())
+            })
     }
 
     /// Get the latest pre-release (beta or canary)
@@ -169,7 +171,7 @@ impl AndroidStudioLister {
         }
 
         Err(AstudiosError::VersionNotFound(format!(
-            "Version '{query}' not found. Use 'as-man list' to see available versions."
+            "Version '{query}' not found. Use 'astudios list' to see available versions."
         )))
     }
 

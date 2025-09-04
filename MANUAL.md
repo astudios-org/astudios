@@ -1,11 +1,11 @@
-# as-man manual
+# astudios manual
 
 ## Synopsis
 
 ```
 OVERVIEW: Manage Android Studio installations on your machine
 
-USAGE: as-man <subcommand>
+USAGE: astudios <subcommand>
 
 OPTIONS:
   -h, --help              Show help information.
@@ -19,31 +19,31 @@ SUBCOMMANDS:
   uninstall               Uninstall a version of Android Studio
   clean                   Remove cache and log files from old installations
   update                  Update the list of available versions of Android Studio
-  version                 Print the version number of as-man itself
+  version                 Print the version number of astudios itself
 
-  See 'as-man help <subcommand>' for detailed help.
+  See 'astudios help <subcommand>' for detailed help.
 ```
 
 ## Subcommands
 
-### as-man download
+### astudios download
 
 ```
 OVERVIEW: Download a specific version of Android Studio
 
-`as-man` will download the specified version from the official JetBrains data feed.
+`astudios` will download the specified version from the official JetBrains data feed.
 By default, it uses a high-performance parallel downloader to accelerate the process.
 
 The version can be specified by its codename or full version number.
 
 EXAMPLES:
-  as-man download Hedgehog
-  as-man download "Giraffe Patch 2"
-  as-man download 2023.1.1
-  as-man download --latest
-  as-man download Iguana --directory ~/AS_Archives/
+  astudios download Hedgehog
+  astudios download "Giraffe Patch 2"
+  astudios download 2023.1.1
+  astudios download --latest
+  astudios download Iguana --directory ~/AS_Archives/
 
-USAGE: as-man download [<version> ...] [--latest] [--latest-prerelease] [--directory <directory>]
+USAGE: astudios download [<version> ...] [--latest] [--latest-prerelease] [--directory <directory>]
 
 ARGUMENTS:
   <version>               The version to download (e.g., "Hedgehog", "2022.3.1").
@@ -57,7 +57,7 @@ OPTIONS:
 
 ```
 
-### as-man install
+### astudios install
 
 ```
 OVERVIEW: Download and install a specific version of Android Studio
@@ -66,13 +66,13 @@ This command first downloads the specified version archive and then unpacks and
 installs it to the appropriate applications directory.
 
 EXAMPLES:
-  as-man install Hedgehog
-  as-man install "Iguana Canary 15"
-  as-man install --latest --select
-  as-man install 2023.1.1 --path ~/Downloads/android-studio-2023.1.1-mac_arm.dmg
-  as-man install --latest --directory "/Custom/Android/Studios"
+  astudios install Hedgehog
+  astudios install "Iguana Canary 15"
+  astudios install --latest --select
+  astudios install 2023.1.1 --path ~/Downloads/android-studio-2023.1.1-mac_arm.dmg
+  astudios install --latest --directory "/Custom/Android/Studios"
 
-USAGE: as-man install [<options>] [<version> ...]
+USAGE: astudios install [<options>] [<version> ...]
 
 ARGUMENTS:
   <version>               The version to install. If omitted, an interactive
@@ -91,12 +91,12 @@ OPTIONS:
 
 ```
 
-### as-man installed
+### astudios installed
 
 ```
 OVERVIEW: List the versions of Android Studio that are installed locally
 
-USAGE: as-man installed [--directory <directory>]
+USAGE: astudios installed [--directory <directory>]
 
 OPTIONS:
   --directory <directory> The base directory where your Android Studio versions are installed.
@@ -104,7 +104,7 @@ OPTIONS:
 
 ```
 
-### as-man list
+### astudios list
 
 ```
 OVERVIEW: List all versions of Android Studio that are available to install
@@ -112,7 +112,7 @@ OVERVIEW: List all versions of Android Studio that are available to install
 This command fetches data from the official JetBrains XML feed. The data is
 cached locally for a short period to improve performance.
 
-USAGE: as-man list [--force]
+USAGE: astudios list [--force]
 
 OPTIONS:
   --force                 Force an update of the available version list, ignoring the cache.
@@ -120,7 +120,7 @@ OPTIONS:
 
 ```
 
-### as-man use
+### astudios use
 
 ```
 OVERVIEW: Change the active Android Studio version
@@ -132,11 +132,11 @@ command line or UI.
 Run without arguments to interactively select from a list of installed versions.
 
 EXAMPLES:
-  as-man use Hedgehog
-  as-man use 2022.3.1
-  as-man use /Applications/Android\ Studio\ Iguana.app
+  astudios use Hedgehog
+  astudios use 2022.3.1
+  astudios use /Applications/Android\ Studio\ Iguana.app
 
-USAGE: as-man use [<version-or-path>] [--directory <directory>]
+USAGE: astudios use [<version-or-path>] [--directory <directory>]
 
 ARGUMENTS:
   <version-or-path>       The codename, version number, or direct path of the
@@ -148,7 +148,7 @@ OPTIONS:
 
 ```
 
-### as-man uninstall
+### astudios uninstall
 
 ```
 OVERVIEW: Uninstall a version of Android Studio
@@ -156,10 +156,10 @@ OVERVIEW: Uninstall a version of Android Studio
 Run without any arguments to interactively select a version to uninstall from a list.
 
 EXAMPLES:
-  as-man uninstall Giraffe
-  as-man uninstall 2022.3.1
+  astudios uninstall Giraffe
+  astudios uninstall 2022.3.1
 
-USAGE: as-man uninstall [<version> ...] [--directory <directory>]
+USAGE: astudios uninstall [<version> ...] [--directory <directory>]
 
 ARGUMENTS:
   <version>               The version to uninstall.
@@ -170,7 +170,7 @@ OPTIONS:
 
 ```
 
-### as-man clean
+### astudios clean
 
 ```
 OVERVIEW: Remove cache and log files from old Android Studio installations
@@ -178,7 +178,7 @@ OVERVIEW: Remove cache and log files from old Android Studio installations
 This utility helps free up disk space by deleting logs, caches, and other temporary
 files associated with uninstalled or outdated versions of Android Studio.
 
-USAGE: as-man clean [--dry-run]
+USAGE: astudios clean [--dry-run]
 
 OPTIONS:
   --dry-run               List the files and directories that would be deleted,
@@ -187,24 +187,24 @@ OPTIONS:
 
 ```
 
-### as-man update
+### astudios update
 
 ```
 OVERVIEW: Update the list of available versions of Android Studio
 
-This is an alias for `as-man list --force`. It forces a refresh of the local
+This is an alias for `astudios list --force`. It forces a refresh of the local
 cache of available Android Studio versions from the JetBrains server.
 
-USAGE: as-man update
+USAGE: astudios update
 
 ```
 
-### as-man version
+### astudios version
 
 ```
-OVERVIEW: Print the version number of as-man itself
+OVERVIEW: Print the version number of astudios itself
 
-USAGE: as-man version
+USAGE: astudios version
 
 ```
 

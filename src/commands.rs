@@ -338,7 +338,7 @@ impl CommandHandler {
         if installations.is_empty() {
             println!("{} No Android Studio versions installed", "⚠️".yellow());
             println!();
-            println!("Use 'as-man install <version>' to install a version");
+            println!("Use 'astudios install <version>' to install a version");
         } else {
             println!("{} Installed Android Studio versions:", "📋".green().bold());
             println!();
@@ -398,7 +398,7 @@ impl CommandHandler {
                     "⚠️".yellow()
                 );
                 println!();
-                println!("Use 'as-man install <version>' to install a version");
+                println!("Use 'astudios install <version>' to install a version");
             }
         }
 

@@ -135,7 +135,9 @@ impl Installer {
             .items
             .iter()
             .find(|item| item.version == version)
-            .ok_or_else(|| AstudiosError::VersionNotFound(format!("Version {version} not found")))?;
+            .ok_or_else(|| {
+                AstudiosError::VersionNotFound(format!("Version {version} not found"))
+            })?;
 
         let download = target_item
             .get_platform_download()
@@ -172,7 +174,11 @@ impl Installer {
     }
 
     /// Extract archive based on type
-    fn extract_archive(&self, archive_path: &Path, version: &str) -> Result<PathBuf, AstudiosError> {
+    fn extract_archive(
+        &self,
+        archive_path: &Path,
+        version: &str,
+    ) -> Result<PathBuf, AstudiosError> {
         let extract_dir = self.install_dir.join(version).join("extracted");
         fs::create_dir_all(&extract_dir)?;
 
@@ -404,7 +410,11 @@ impl Installer {
     }
 
     /// Clean up temporary files
-    fn cleanup_files(&self, archive_path: &Path, extracted_path: &Path) -> Result<(), AstudiosError> {
+    fn cleanup_files(
+        &self,
+        archive_path: &Path,
+        extracted_path: &Path,
+    ) -> Result<(), AstudiosError> {
         if archive_path.exists() {
             fs::remove_file(archive_path)?;
         }
@@ -535,7 +545,7 @@ impl Installer {
 
         if matching_installations.is_empty() {
             return Err(AstudiosError::VersionNotFound(format!(
-                "Android Studio version '{version}' is not installed. Use 'as-man installed' to see available versions."
+                "Android Studio version '{version}' is not installed. Use 'astudios installed' to see available versions."
             )));
         }
 
@@ -578,13 +588,14 @@ impl Installer {
 
         // Check if this is the currently active version
         if let Ok(Some(active)) = self.get_active_studio()
-            && active.path == *app_path {
-                println!("Removing symlink for currently active version...");
-                let symlink_path = self.applications_dir.join("Android Studio.app");
-                if symlink_path.exists() || symlink_path.is_symlink() {
-                    fs::remove_file(&symlink_path)?;
-                }
+            && active.path == *app_path
+        {
+            println!("Removing symlink for currently active version...");
+            let symlink_path = self.applications_dir.join("Android Studio.app");
+            if symlink_path.exists() || symlink_path.is_symlink() {
+                fs::remove_file(&symlink_path)?;
             }
+        }
 
         // Remove the application bundle
         if app_path.exists() {
@@ -652,11 +663,13 @@ impl Installer {
     pub fn get_active_studio(&self) -> Result<Option<InstalledAndroidStudio>, AstudiosError> {
         let symlink_path = self.applications_dir.join("Android Studio.app");
 
-        if symlink_path.exists() && symlink_path.is_symlink()
+        if symlink_path.exists()
+            && symlink_path.is_symlink()
             && let Ok(target) = fs::read_link(&symlink_path)
-                && let Ok(Some(installed)) = InstalledAndroidStudio::new(target) {
-                    return Ok(Some(installed));
-                }
+            && let Ok(Some(installed)) = InstalledAndroidStudio::new(target)
+        {
+            return Ok(Some(installed));
+        }
 
         Ok(None)
     }

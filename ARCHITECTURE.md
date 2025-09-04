@@ -1,8 +1,8 @@
-# as-man Architecture Documentation
+# Architecture Documentation
 
 ## Overview
 
-This document describes the architecture and design decisions of the as-man (Android Studio Manager) codebase.
+This document describes the architecture and design decisions of the astudios (Android Studio Manager) codebase.
 
 ## Architecture Goals
 
@@ -35,7 +35,7 @@ src/
 
 ### 1. Error Handling
 
-The codebase now uses a comprehensive `AsManError` enum:
+The codebase now uses a comprehensive `AstudiosError` enum:
 
 - **Type Safety**: Each error type is explicitly handled
 - **User Experience**: Clear, actionable error messages
@@ -106,7 +106,7 @@ Enum representing different release channels:
 
 Each module has specific error types:
 
-- **AsManError**: Main error enum with variants for all error scenarios
+- **AstudiosError**: Main error enum with variants for all error scenarios
 - **Contextual Messages**: User-friendly error messages with context
 - **Recovery Suggestions**: Actionable next steps for users
 
@@ -154,28 +154,28 @@ The refactored codebase is designed for testability:
 ### Basic Usage
 ```bash
 # List available versions
-as-man list
+astudios list
 
 # Install latest stable
-as-man install --latest
+astudios install --latest
 
 # Download specific version
-as-man download "2023.3.1"
+astudios download "2023.3.1"
 
 # Switch versions
-as-man use "2023.3.1"
+astudios use "2023.3.1"
 ```
 
 ### Advanced Usage
 ```bash
 # Install with custom directory
-as-man install "2023.3.1" --directory /Applications/Custom
+astudios install "2023.3.1" --directory /Applications/Custom
 
 # Download with specific downloader
-as-man download "2023.3.1" --downloader aria2
+astudios download "2023.3.1" --downloader aria2
 
 # List only canary versions
-as-man list --canary
+astudios list --canary
 ```
 
 ## Development Guidelines

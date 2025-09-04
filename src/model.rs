@@ -247,7 +247,9 @@ impl InstalledAndroidStudio {
         let short_version = dict
             .get("CFBundleShortVersionString")
             .and_then(|v| v.as_string())
-            .ok_or_else(|| AstudiosError::General("CFBundleShortVersionString not found".to_string()))?
+            .ok_or_else(|| {
+                AstudiosError::General("CFBundleShortVersionString not found".to_string())
+            })?
             .to_string();
 
         // Extract CFBundleVersion
@@ -278,11 +280,13 @@ impl InstalledAndroidStudio {
     ) -> Result<(String, String, String), AstudiosError> {
         use std::fs;
 
-        let content = fs::read_to_string(product_info_path)
-            .map_err(|e| AstudiosError::General(format!("Failed to read product-info.json: {e}")))?;
+        let content = fs::read_to_string(product_info_path).map_err(|e| {
+            AstudiosError::General(format!("Failed to read product-info.json: {e}"))
+        })?;
 
-        let json: serde_json::Value = serde_json::from_str(&content)
-            .map_err(|e| AstudiosError::General(format!("Failed to parse product-info.json: {e}")))?;
+        let json: serde_json::Value = serde_json::from_str(&content).map_err(|e| {
+            AstudiosError::General(format!("Failed to parse product-info.json: {e}"))
+        })?;
 
         let product_name = json
             .get("name")

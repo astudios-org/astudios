@@ -117,12 +117,13 @@ impl SystemDetector {
             if let Some(major_minor) = version.split('.').take(2).collect::<Vec<_>>().get(0..2)
                 && let (Ok(major), Ok(minor)) =
                     (major_minor[0].parse::<u32>(), major_minor[1].parse::<u32>())
-                    && (major < 10 || (major == 10 && minor < 14)) {
-                        result.add_issue(format!(
+                && (major < 10 || (major == 10 && minor < 14))
+            {
+                result.add_issue(format!(
                             "macOS version {version} is not supported. Android Studio requires macOS 10.14 or later."
                         ));
-                        return Ok(false);
-                    }
+                return Ok(false);
+            }
         } else {
             result.add_warning("Could not determine macOS version".to_string());
         }
@@ -236,11 +237,13 @@ impl SystemDetector {
         let result = unsafe { statvfs(path_cstring.as_ptr(), &mut stat) };
 
         if result == 0 {
-            stat.f_bavail
-                .checked_mul(stat.f_frsize)
-                .ok_or_else(|| AstudiosError::General("Disk space calculation overflow".to_string()))
+            stat.f_bavail.checked_mul(stat.f_frsize).ok_or_else(|| {
+                AstudiosError::General("Disk space calculation overflow".to_string())
+            })
         } else {
-            Err(AstudiosError::General("Failed to get disk space".to_string()))
+            Err(AstudiosError::General(
+                "Failed to get disk space".to_string(),
+            ))
         }
     }
 
@@ -281,7 +284,7 @@ impl SystemDetector {
         }
 
         // Try to create a temporary file to test write permissions
-        let test_file = dir.join(".as-man-permission-test");
+        let test_file = dir.join(".astudios-permission-test");
         match fs::write(&test_file, "test") {
             Ok(_) => {
                 // Clean up test file
@@ -387,10 +390,11 @@ impl SystemDetector {
 
         for cmd in java_commands {
             if let Ok(output) = Command::new(cmd).arg("-version").output()
-                && output.status.success() {
-                    java_found = true;
-                    break;
-                }
+                && output.status.success()
+            {
+                java_found = true;
+                break;
+            }
         }
 
         if !java_found {

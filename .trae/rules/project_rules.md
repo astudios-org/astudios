@@ -4,7 +4,7 @@ This file provides guidance to TRAE AI when working with code in this repository
 
 ## Project Overview
 
-as-man is a CLI tool for managing Android Studio installations on macOS, written in Rust. It's inspired by xcodes and provides functionality to list, download, install, and switch between Android Studio versions.
+astudios is a CLI tool for managing Android Studio installations on macOS, written in Rust. It's inspired by xcodes and provides functionality to list, download, install, and switch between Android Studio versions.
 
 ## Development Commands
 
@@ -42,7 +42,7 @@ cargo run -- --help
 
 # Install from source
 cargo build --release
-# Binary will be in target/release/as-man
+# Binary will be in target/release/astudios
 ```
 
 ## Architecture Overview
@@ -67,7 +67,7 @@ The codebase follows a modular architecture with clear separation of concerns:
 ### Key Design Patterns
 
 #### Error Handling Strategy
-The project uses a comprehensive `AsManError` enum in `src/error.rs` with:
+The project uses a comprehensive `AstudiosError` enum in `src/error.rs` with:
 - Type-safe error variants for different failure scenarios
 - User-friendly error messages with actionable suggestions
 - Automatic conversion from standard library errors via `From` implementations
@@ -161,7 +161,7 @@ cargo test -- --nocapture
 ## Code Style and Conventions
 
 ### Error Handling
-- Always use `AsManError` for application errors
+- Always use `AstudiosError` for application errors
 - Provide user-friendly error messages with context
 - Include actionable suggestions in error output
 - Use `?` operator for error propagation
