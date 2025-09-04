@@ -2,10 +2,10 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "as-man",
+    name = "astudios",
     version = "0.1.0",
-    about = "Android Studio Manager - A CLI tool for managing Android Studio versions",
-    long_about = "as-man is a command-line tool inspired by xcodes, built specifically for managing Android Studio installations on your local machine."
+    about = "Android Studios Manager - A CLI tool for managing Android Studio versions",
+    long_about = "astudios is a command-line tool inspired by xcodes, built specifically for managing Android Studio installations on your local machine."
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -50,12 +50,12 @@ pub enum Commands {
         #[arg(long)]
         latest_prerelease: bool,
 
-        /// The directory to download the archive to. Defaults to ~/.as-man/versions/{version}
+        /// The directory to download the archive to. Defaults to ~/.astudios/versions/{version}
         #[arg(long)]
         directory: Option<String>,
     },
 
-    /// Install a specific Android Studio version to ~/.as-man/versions and /Applications
+    /// Install a specific Android Studio version to ~/.astudios/versions and /Applications
     Install {
         /// Version to install (e.g., "2024.3.2.14", "Android Studio Meerkat Feature Drop", "2023.3.1 Canary 8")
         version: Option<String>,

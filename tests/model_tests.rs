@@ -1,4 +1,4 @@
-use as_man::model::*;
+use astudios::model::*;
 use insta::assert_yaml_snapshot;
 
 /// Test AndroidStudio model serialization

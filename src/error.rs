@@ -1,8 +1,8 @@
 use std::fmt;
 
-/// Custom error types for as-man application
+/// Custom error types for astudios application
 #[derive(Debug)]
-pub enum AsManError {
+pub enum AstudiosError {
     /// IO-related errors
     Io(std::io::Error),
     /// Network-related errors
@@ -45,73 +45,73 @@ pub enum AsManError {
     NetworkUnavailable(String),
 }
 
-impl fmt::Display for AsManError {
+impl fmt::Display for AstudiosError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AsManError::Io(e) => write!(f, "IO error: {e}"),
-            AsManError::Network(e) => write!(f, "Network error: {e}"),
-            AsManError::Parse(msg) => write!(f, "Parse error: {msg}"),
-            AsManError::Config(msg) => write!(f, "Configuration error: {msg}"),
-            AsManError::VersionNotFound(version) => write!(f, "Version '{version}' not found"),
-            AsManError::Platform(msg) => write!(f, "Platform error: {msg}"),
-            AsManError::Download(msg) => write!(f, "Download error: {msg}"),
-            AsManError::Installation(msg) => write!(f, "Installation error: {msg}"),
-            AsManError::Extraction(msg) => write!(f, "Extraction error: {msg}"),
-            AsManError::DownloaderNotFound(msg) => write!(f, "Downloader not found: {msg}"),
-            AsManError::Path(msg) => write!(f, "Path error: {msg}"),
-            AsManError::Cache(msg) => write!(f, "Cache error: {msg}"),
-            AsManError::General(msg) => write!(f, "Error: {msg}"),
-            AsManError::Utf8(e) => write!(f, "UTF-8 error: {e}"),
-            AsManError::Zip(e) => write!(f, "ZIP error: {e}"),
-            AsManError::SystemTime(e) => write!(f, "System time error: {e}"),
-            AsManError::PrerequisiteNotMet(msg) => write!(f, "Prerequisite not met: {msg}"),
-            AsManError::InsufficientResources(msg) => write!(f, "Insufficient resources: {msg}"),
-            AsManError::PermissionDenied(msg) => write!(f, "Permission denied: {msg}"),
-            AsManError::NetworkUnavailable(msg) => write!(f, "Network unavailable: {msg}"),
+            AstudiosError::Io(e) => write!(f, "IO error: {e}"),
+            AstudiosError::Network(e) => write!(f, "Network error: {e}"),
+            AstudiosError::Parse(msg) => write!(f, "Parse error: {msg}"),
+            AstudiosError::Config(msg) => write!(f, "Configuration error: {msg}"),
+            AstudiosError::VersionNotFound(version) => write!(f, "Version '{version}' not found"),
+            AstudiosError::Platform(msg) => write!(f, "Platform error: {msg}"),
+            AstudiosError::Download(msg) => write!(f, "Download error: {msg}"),
+            AstudiosError::Installation(msg) => write!(f, "Installation error: {msg}"),
+            AstudiosError::Extraction(msg) => write!(f, "Extraction error: {msg}"),
+            AstudiosError::DownloaderNotFound(msg) => write!(f, "Downloader not found: {msg}"),
+            AstudiosError::Path(msg) => write!(f, "Path error: {msg}"),
+            AstudiosError::Cache(msg) => write!(f, "Cache error: {msg}"),
+            AstudiosError::General(msg) => write!(f, "Error: {msg}"),
+            AstudiosError::Utf8(e) => write!(f, "UTF-8 error: {e}"),
+            AstudiosError::Zip(e) => write!(f, "ZIP error: {e}"),
+            AstudiosError::SystemTime(e) => write!(f, "System time error: {e}"),
+            AstudiosError::PrerequisiteNotMet(msg) => write!(f, "Prerequisite not met: {msg}"),
+            AstudiosError::InsufficientResources(msg) => write!(f, "Insufficient resources: {msg}"),
+            AstudiosError::PermissionDenied(msg) => write!(f, "Permission denied: {msg}"),
+            AstudiosError::NetworkUnavailable(msg) => write!(f, "Network unavailable: {msg}"),
         }
     }
 }
 
-impl std::error::Error for AsManError {}
+impl std::error::Error for AstudiosError {}
 
-impl From<std::io::Error> for AsManError {
+impl From<std::io::Error> for AstudiosError {
     fn from(err: std::io::Error) -> Self {
-        AsManError::Io(err)
+        AstudiosError::Io(err)
     }
 }
 
-impl From<reqwest::Error> for AsManError {
+impl From<reqwest::Error> for AstudiosError {
     fn from(err: reqwest::Error) -> Self {
-        AsManError::Network(err)
+        AstudiosError::Network(err)
     }
 }
 
-impl From<serde_json::Error> for AsManError {
+impl From<serde_json::Error> for AstudiosError {
     fn from(err: serde_json::Error) -> Self {
-        AsManError::Parse(err.to_string())
+        AstudiosError::Parse(err.to_string())
     }
 }
 
-impl From<quick_xml::DeError> for AsManError {
+impl From<quick_xml::DeError> for AstudiosError {
     fn from(err: quick_xml::DeError) -> Self {
-        AsManError::Parse(err.to_string())
+        AstudiosError::Parse(err.to_string())
     }
 }
 
-impl From<std::str::Utf8Error> for AsManError {
+impl From<std::str::Utf8Error> for AstudiosError {
     fn from(err: std::str::Utf8Error) -> Self {
-        AsManError::Utf8(err)
+        AstudiosError::Utf8(err)
     }
 }
 
-impl From<zip::result::ZipError> for AsManError {
+impl From<zip::result::ZipError> for AstudiosError {
     fn from(err: zip::result::ZipError) -> Self {
-        AsManError::Zip(err)
+        AstudiosError::Zip(err)
     }
 }
 
-impl From<std::time::SystemTimeError> for AsManError {
+impl From<std::time::SystemTimeError> for AstudiosError {
     fn from(err: std::time::SystemTimeError) -> Self {
-        AsManError::SystemTime(err)
+        AstudiosError::SystemTime(err)
     }
 }

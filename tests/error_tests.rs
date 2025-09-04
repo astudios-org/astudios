@@ -1,51 +1,51 @@
-use as_man::error::AsManError;
+use astudios::error::AstudiosError;
 use insta::assert_yaml_snapshot;
 
-/// Test AsManError variants and their display messages
+/// Test AstudiosError variants and their display messages
 #[test]
 fn test_error_variants() {
     let errors = vec![
-        AsManError::General("General error message".to_string()),
-        AsManError::VersionNotFound("2023.1.1".to_string()),
-        AsManError::Download("Download failed".to_string()),
-        AsManError::Installation("Installation failed".to_string()),
-        AsManError::Extraction("Extraction failed".to_string()),
-        AsManError::Config("Configuration error".to_string()),
-        AsManError::PrerequisiteNotMet("Prerequisite check failed".to_string()),
-        AsManError::InsufficientResources("Not enough resources".to_string()),
-        AsManError::PermissionDenied("Permission denied".to_string()),
-        AsManError::NetworkUnavailable("Network timeout".to_string()),
-        AsManError::Path("Invalid path".to_string()),
-        AsManError::Platform("Platform error".to_string()),
-        AsManError::Cache("Cache error".to_string()),
-        AsManError::Parse("Parse error".to_string()),
-        AsManError::DownloaderNotFound("aria2 not found".to_string()),
+        AstudiosError::General("General error message".to_string()),
+        AstudiosError::VersionNotFound("2023.1.1".to_string()),
+        AstudiosError::Download("Download failed".to_string()),
+        AstudiosError::Installation("Installation failed".to_string()),
+        AstudiosError::Extraction("Extraction failed".to_string()),
+        AstudiosError::Config("Configuration error".to_string()),
+        AstudiosError::PrerequisiteNotMet("Prerequisite check failed".to_string()),
+        AstudiosError::InsufficientResources("Not enough resources".to_string()),
+        AstudiosError::PermissionDenied("Permission denied".to_string()),
+        AstudiosError::NetworkUnavailable("Network timeout".to_string()),
+        AstudiosError::Path("Invalid path".to_string()),
+        AstudiosError::Platform("Platform error".to_string()),
+        AstudiosError::Cache("Cache error".to_string()),
+        AstudiosError::Parse("Parse error".to_string()),
+        AstudiosError::DownloaderNotFound("aria2 not found".to_string()),
     ];
 
     let error_messages: Vec<(String, String)> = errors
         .into_iter()
         .map(|e| {
             let variant_name = match &e {
-                AsManError::General(_) => "General",
-                AsManError::VersionNotFound(_) => "VersionNotFound",
-                AsManError::Download(_) => "Download",
-                AsManError::Installation(_) => "Installation",
-                AsManError::Extraction(_) => "Extraction",
-                AsManError::Network(_) => "Network",
-                AsManError::Config(_) => "Config",
-                AsManError::PrerequisiteNotMet(_) => "PrerequisiteNotMet",
-                AsManError::InsufficientResources(_) => "InsufficientResources",
-                AsManError::PermissionDenied(_) => "PermissionDenied",
-                AsManError::NetworkUnavailable(_) => "NetworkUnavailable",
-                AsManError::Path(_) => "Path",
-                AsManError::Platform(_) => "Platform",
-                AsManError::Cache(_) => "Cache",
-                AsManError::Parse(_) => "Parse",
-                AsManError::DownloaderNotFound(_) => "DownloaderNotFound",
-                AsManError::Io(_) => "Io",
-                AsManError::Utf8(_) => "Utf8",
-                AsManError::Zip(_) => "Zip",
-                AsManError::SystemTime(_) => "SystemTime",
+                AstudiosError::General(_) => "General",
+                AstudiosError::VersionNotFound(_) => "VersionNotFound",
+                AstudiosError::Download(_) => "Download",
+                AstudiosError::Installation(_) => "Installation",
+                AstudiosError::Extraction(_) => "Extraction",
+                AstudiosError::Network(_) => "Network",
+                AstudiosError::Config(_) => "Config",
+                AstudiosError::PrerequisiteNotMet(_) => "PrerequisiteNotMet",
+                AstudiosError::InsufficientResources(_) => "InsufficientResources",
+                AstudiosError::PermissionDenied(_) => "PermissionDenied",
+                AstudiosError::NetworkUnavailable(_) => "NetworkUnavailable",
+                AstudiosError::Path(_) => "Path",
+                AstudiosError::Platform(_) => "Platform",
+                AstudiosError::Cache(_) => "Cache",
+                AstudiosError::Parse(_) => "Parse",
+                AstudiosError::DownloaderNotFound(_) => "DownloaderNotFound",
+                AstudiosError::Io(_) => "Io",
+                AstudiosError::Utf8(_) => "Utf8",
+                AstudiosError::Zip(_) => "Zip",
+                AstudiosError::SystemTime(_) => "SystemTime",
             };
             (variant_name.to_string(), e.to_string())
         })
@@ -58,8 +58,8 @@ fn test_error_variants() {
 #[test]
 fn test_io_error_conversion() {
     let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "File not found");
-    let as_man_error = AsManError::from(io_error);
-    let error_string = as_man_error.to_string();
+    let astudios_error = AstudiosError::from(io_error);
+    let error_string = astudios_error.to_string();
 
     let error_info = vec![
         ("type".to_string(), "IoError".to_string()),
@@ -81,8 +81,8 @@ fn test_io_error_conversion() {
 fn test_json_error_conversion() {
     let json_str = r#"{"invalid": json"#;
     let json_error = serde_json::from_str::<serde_json::Value>(json_str).unwrap_err();
-    let as_man_error = AsManError::from(json_error);
-    let error_string = as_man_error.to_string();
+    let astudios_error = AstudiosError::from(json_error);
+    let error_string = astudios_error.to_string();
 
     let error_info = vec![
         ("type".to_string(), "ParseError".to_string()),
@@ -102,33 +102,33 @@ fn test_error_context() {
     let errors_with_context = vec![
         (
             "download_failure",
-            AsManError::Download(
+            AstudiosError::Download(
                 "Failed to download Android Studio 2023.1.1: Connection timeout".to_string(),
             ),
         ),
         (
             "installation_failure",
-            AsManError::Installation(
+            AstudiosError::Installation(
                 "Failed to install to /Applications: Permission denied".to_string(),
             ),
         ),
         (
             "extraction_failure",
-            AsManError::Extraction("Failed to extract DMG: Invalid archive format".to_string()),
+            AstudiosError::Extraction("Failed to extract DMG: Invalid archive format".to_string()),
         ),
         (
             "prerequisite_failure",
-            AsManError::PrerequisiteNotMet(
+            AstudiosError::PrerequisiteNotMet(
                 "System requirements not met: macOS 10.14+ required".to_string(),
             ),
         ),
         (
             "version_not_found",
-            AsManError::VersionNotFound("2023.1.1".to_string()),
+            AstudiosError::VersionNotFound("2023.1.1".to_string()),
         ),
         (
             "permission_denied",
-            AsManError::PermissionDenied("Cannot write to /Applications directory".to_string()),
+            AstudiosError::PermissionDenied("Cannot write to /Applications directory".to_string()),
         ),
     ];
 
@@ -144,15 +144,15 @@ fn test_error_context() {
 #[test]
 fn test_error_categorization() {
     let errors = vec![
-        AsManError::NetworkUnavailable("Timeout".to_string()),
-        AsManError::Download("Download failed".to_string()),
-        AsManError::Installation("Installation failed".to_string()),
-        AsManError::PermissionDenied("Permission denied".to_string()),
-        AsManError::InsufficientResources("Disk full".to_string()),
-        AsManError::Config("Config error".to_string()),
-        AsManError::General("General error".to_string()),
-        AsManError::VersionNotFound("1.0.0".to_string()),
-        AsManError::PrerequisiteNotMet("Missing dependency".to_string()),
+        AstudiosError::NetworkUnavailable("Timeout".to_string()),
+        AstudiosError::Download("Download failed".to_string()),
+        AstudiosError::Installation("Installation failed".to_string()),
+        AstudiosError::PermissionDenied("Permission denied".to_string()),
+        AstudiosError::InsufficientResources("Disk full".to_string()),
+        AstudiosError::Config("Config error".to_string()),
+        AstudiosError::General("General error".to_string()),
+        AstudiosError::VersionNotFound("1.0.0".to_string()),
+        AstudiosError::PrerequisiteNotMet("Missing dependency".to_string()),
     ];
 
     let categorized_errors: Vec<(String, bool, bool, bool)> = errors
@@ -160,20 +160,20 @@ fn test_error_categorization() {
         .map(|e| {
             let is_network_related = matches!(
                 e,
-                AsManError::Network(_) | AsManError::NetworkUnavailable(_)
+                AstudiosError::Network(_) | AstudiosError::NetworkUnavailable(_)
             );
             let is_user_actionable = matches!(
                 e,
-                AsManError::PermissionDenied(_)
-                    | AsManError::InsufficientResources(_)
-                    | AsManError::Config(_)
-                    | AsManError::PrerequisiteNotMet(_)
+                AstudiosError::PermissionDenied(_)
+                    | AstudiosError::InsufficientResources(_)
+                    | AstudiosError::Config(_)
+                    | AstudiosError::PrerequisiteNotMet(_)
             );
             let is_retryable = matches!(
                 e,
-                AsManError::Network(_)
-                    | AsManError::NetworkUnavailable(_)
-                    | AsManError::Download(_)
+                AstudiosError::Network(_)
+                    | AstudiosError::NetworkUnavailable(_)
+                    | AstudiosError::Download(_)
             );
 
             let variant_name = format!("{e:?}")
@@ -199,8 +199,8 @@ fn test_error_categorization() {
 fn test_utf8_error_conversion() {
     let invalid_utf8 = vec![0, 159, 146, 150]; // Invalid UTF-8 sequence
     let utf8_error = std::str::from_utf8(&invalid_utf8).unwrap_err();
-    let as_man_error = AsManError::from(utf8_error);
-    let error_string = as_man_error.to_string();
+    let astudios_error = AstudiosError::from(utf8_error);
+    let error_string = astudios_error.to_string();
 
     let error_info = vec![
         ("type".to_string(), "Utf8Error".to_string()),
@@ -222,8 +222,8 @@ fn test_system_time_error_conversion() {
     let now = SystemTime::UNIX_EPOCH;
     let future_time = now + Duration::from_secs(1);
     let time_error = now.duration_since(future_time).unwrap_err();
-    let as_man_error = AsManError::from(time_error);
-    let error_string = as_man_error.to_string();
+    let astudios_error = AstudiosError::from(time_error);
+    let error_string = astudios_error.to_string();
 
     let error_info = vec![
         ("type".to_string(), "SystemTimeError".to_string()),

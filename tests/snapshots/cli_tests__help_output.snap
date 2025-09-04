@@ -2,14 +2,14 @@
 source: tests/cli_tests.rs
 expression: stdout
 ---
-as-man is a command-line tool inspired by xcodes, built specifically for managing Android Studio installations on your local machine.
+astudios is a command-line tool inspired by xcodes, built specifically for managing Android Studio installations on your local machine.
 
-Usage: as-man <COMMAND>
+Usage: astudios <COMMAND>
 
 Commands:
   list       List available Android Studio versions
   download   Download a specific version of Android Studio
-  install    Install a specific Android Studio version to ~/.as-man/versions and /Applications
+  install    Install a specific Android Studio version to ~/.astudios/versions and /Applications
   uninstall  Uninstall a specific Android Studio version
   use        Switch to a different Android Studio version
   installed  Show currently installed versions

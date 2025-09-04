@@ -1,4 +1,4 @@
-use crate::{config::Config, error::AsManError};
+use crate::{config::Config, error::AstudiosError};
 use std::{fs, path::Path, process::Command};
 
 /// System detection and validation for pre-installation checks
@@ -63,7 +63,7 @@ impl SystemDetector {
     pub fn detect_system_requirements(
         install_dir: &Path,
         applications_dir: &Path,
-    ) -> Result<DetectionResult, AsManError> {
+    ) -> Result<DetectionResult, AstudiosError> {
         let mut result = DetectionResult::new();
 
         // Check platform compatibility
@@ -90,7 +90,7 @@ impl SystemDetector {
     }
 
     /// Check if the current platform is supported (macOS only)
-    fn check_platform_compatibility(result: &mut DetectionResult) -> Result<bool, AsManError> {
+    fn check_platform_compatibility(result: &mut DetectionResult) -> Result<bool, AstudiosError> {
         let os = std::env::consts::OS;
         let arch = std::env::consts::ARCH;
 
@@ -138,7 +138,7 @@ impl SystemDetector {
         install_dir: &Path,
         applications_dir: &Path,
         result: &mut DetectionResult,
-    ) -> Result<bool, AsManError> {
+    ) -> Result<bool, AstudiosError> {
         let required_space = Config::min_disk_space_gb()
             .checked_mul(1024)
             .and_then(|x| x.checked_mul(1024))
@@ -185,7 +185,7 @@ impl SystemDetector {
     }
 
     /// Get available disk space for a given path (macOS/Unix)
-    fn get_available_space(path: &Path) -> Result<u64, AsManError> {
+    fn get_available_space(path: &Path) -> Result<u64, AstudiosError> {
         // Create the directory if it doesn't exist to check space
         if !path.exists() {
             fs::create_dir_all(path)?;
@@ -232,7 +232,7 @@ impl SystemDetector {
         let path_str = canonical_path.to_string_lossy();
         let path_bytes: Vec<u8> = path_str.bytes().filter(|&b| b != 0).collect();
         let path_cstring = CString::new(path_bytes)
-            .map_err(|_| AsManError::General("Invalid path for disk space check".to_string()))?;
+            .map_err(|_| AstudiosError::General("Invalid path for disk space check".to_string()))?;
 
         let mut stat: Statvfs = unsafe { mem::zeroed() };
 
@@ -241,9 +241,9 @@ impl SystemDetector {
         if result == 0 {
             stat.f_bavail
                 .checked_mul(stat.f_frsize)
-                .ok_or_else(|| AsManError::General("Disk space calculation overflow".to_string()))
+                .ok_or_else(|| AstudiosError::General("Disk space calculation overflow".to_string()))
         } else {
-            Err(AsManError::General("Failed to get disk space".to_string()))
+            Err(AstudiosError::General("Failed to get disk space".to_string()))
         }
     }
 
@@ -252,7 +252,7 @@ impl SystemDetector {
         install_dir: &Path,
         applications_dir: &Path,
         result: &mut DetectionResult,
-    ) -> Result<bool, AsManError> {
+    ) -> Result<bool, AstudiosError> {
         let mut permissions_ok = true;
 
         // Check install directory permissions
@@ -277,7 +277,7 @@ impl SystemDetector {
     }
 
     /// Check if we have write permissions for a directory
-    fn check_directory_permissions(dir: &Path) -> Result<bool, AsManError> {
+    fn check_directory_permissions(dir: &Path) -> Result<bool, AstudiosError> {
         // Create directory if it doesn't exist
         if !dir.exists() {
             fs::create_dir_all(dir)?;
@@ -296,7 +296,7 @@ impl SystemDetector {
     }
 
     /// Check network connectivity
-    fn check_network_connectivity(result: &mut DetectionResult) -> Result<bool, AsManError> {
+    fn check_network_connectivity(result: &mut DetectionResult) -> Result<bool, AstudiosError> {
         // Try to make a simple HEAD request to the JetBrains API
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(Config::NETWORK_TIMEOUT_SECS))
@@ -325,7 +325,7 @@ impl SystemDetector {
     }
 
     /// Check required dependencies
-    fn check_dependencies(result: &mut DetectionResult) -> Result<bool, AsManError> {
+    fn check_dependencies(result: &mut DetectionResult) -> Result<bool, AstudiosError> {
         let mut dependencies_ok = true;
 
         // Check for required system tools
@@ -369,7 +369,7 @@ impl SystemDetector {
     }
 
     /// Check for archive extraction tools (macOS)
-    fn check_archive_tools(result: &mut DetectionResult) -> Result<bool, AsManError> {
+    fn check_archive_tools(result: &mut DetectionResult) -> Result<bool, AstudiosError> {
         // On macOS, we need hdiutil for DMG files
         if !Self::check_tool_available("hdiutil") {
             result.add_issue(
@@ -383,7 +383,7 @@ impl SystemDetector {
     }
 
     /// Check for Java runtime (optional but recommended)
-    fn check_java_runtime(result: &mut DetectionResult) -> Result<bool, AsManError> {
+    fn check_java_runtime(result: &mut DetectionResult) -> Result<bool, AstudiosError> {
         // Check for Java in common locations
         let java_commands = ["java", "javac"];
         let mut java_found = false;
@@ -407,8 +407,8 @@ impl SystemDetector {
     }
 }
 
-impl From<std::ffi::NulError> for AsManError {
+impl From<std::ffi::NulError> for AstudiosError {
     fn from(err: std::ffi::NulError) -> Self {
-        AsManError::General(format!("String conversion error: {err}"))
+        AstudiosError::General(format!("String conversion error: {err}"))
     }
 }

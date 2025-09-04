@@ -4,7 +4,7 @@ expression: stdout
 ---
 List available Android Studio versions
 
-Usage: as-man list [OPTIONS]
+Usage: astudios list [OPTIONS]
 
 Options:
       --release        Show only release versions

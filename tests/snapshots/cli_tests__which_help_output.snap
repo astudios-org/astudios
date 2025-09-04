@@ -4,7 +4,7 @@ expression: stdout
 ---
 Show which version is currently active
 
-Usage: as-man which
+Usage: astudios which
 
 Options:
   -h, --help  Print help

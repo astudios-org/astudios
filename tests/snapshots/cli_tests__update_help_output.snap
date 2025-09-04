@@ -4,7 +4,7 @@ expression: stdout
 ---
 Update the local releases cache
 
-Usage: as-man update
+Usage: astudios update
 
 Options:
   -h, --help  Print help

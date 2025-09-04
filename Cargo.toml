@@ -1,10 +1,10 @@
 [package]
-name = "as-man"
+name = "astudios"
 version = "0.1.0"
 edition = "2024"
-authors = ["as-man contributors"]
-description = "Android Studio Manager - A CLI tool for managing Android Studio versions"
-repository = "https://github.com/Binlogo/as-man"
+authors = ["astudios contributors"]
+description = "Android Studios Manager - A CLI tool for managing Android Studio versions"
+repository = "https://github.com/Binlogo/astudios"
 license = "MIT"
 keywords = ["android", "android-studio", "cli", "installer", "manager"]
 categories = ["command-line-utilities", "development-tools"]

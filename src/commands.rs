@@ -1,8 +1,8 @@
 use crate::cli::{Cli, Commands};
-use as_man::{
+use astudios::{
     config::Config,
     downloader::Downloader,
-    error::AsManError,
+    error::AstudiosError,
     installer::Installer,
     list::AndroidStudioLister,
     model::{AndroidStudio, ReleaseChannel},
@@ -16,7 +16,7 @@ pub struct CommandHandler;
 
 impl CommandHandler {
     /// Main entry point for handling CLI commands
-    pub fn handle(cli: Cli) -> Result<(), AsManError> {
+    pub fn handle(cli: Cli) -> Result<(), AstudiosError> {
         match cli.command {
             Commands::List {
                 release,
@@ -62,7 +62,7 @@ impl CommandHandler {
         canary: bool,
         limit: Option<usize>,
         all_platforms: bool,
-    ) -> Result<(), AsManError> {
+    ) -> Result<(), AstudiosError> {
         let reporter = ProgressReporter::new(true);
 
         let lister = AndroidStudioLister::new()?;
@@ -167,7 +167,7 @@ impl CommandHandler {
         latest: bool,
         directory: Option<&str>,
         skip_checks: bool,
-    ) -> Result<(), AsManError> {
+    ) -> Result<(), AstudiosError> {
         let lister = AndroidStudioLister::new()?;
 
         // Find the target version
@@ -176,7 +176,7 @@ impl CommandHandler {
         } else if let Some(version_query) = version {
             lister.find_version_by_query(version_query)?
         } else {
-            return Err(AsManError::General(
+            return Err(AstudiosError::General(
                 "Please specify a version or use --latest".to_string(),
             ));
         };
@@ -212,7 +212,7 @@ impl CommandHandler {
         latest: bool,
         latest_prerelease: bool,
         directory: Option<&str>,
-    ) -> Result<(), AsManError> {
+    ) -> Result<(), AstudiosError> {
         let lister = AndroidStudioLister::new()?;
 
         // Find the target version
@@ -223,7 +223,7 @@ impl CommandHandler {
         } else if let Some(version_query) = version {
             lister.find_version_by_query(version_query)?
         } else {
-            return Err(AsManError::General(
+            return Err(AstudiosError::General(
                 "Please specify a version or use --latest or --latest-prerelease".to_string(),
             ));
         };
@@ -254,7 +254,7 @@ impl CommandHandler {
         // Get appropriate download for current platform
         let download = target_item
             .get_platform_download()
-            .ok_or(AsManError::Download(
+            .ok_or(AstudiosError::Download(
                 "No download available for current platform".to_string(),
             ))?;
 
@@ -303,7 +303,7 @@ impl CommandHandler {
     }
 
     /// Handle the uninstall command
-    fn handle_uninstall(version: &str) -> Result<(), AsManError> {
+    fn handle_uninstall(version: &str) -> Result<(), AstudiosError> {
         let installer = Installer::new()?;
 
         println!();
@@ -323,7 +323,7 @@ impl CommandHandler {
     }
 
     /// Handle the use command to switch versions
-    fn handle_use(version: &str) -> Result<(), AsManError> {
+    fn handle_use(version: &str) -> Result<(), AstudiosError> {
         let installer = Installer::new()?;
         installer.switch_to_version(version)?;
         println!("{} Now using Android Studio {}", "✅".green(), version);
@@ -331,7 +331,7 @@ impl CommandHandler {
     }
 
     /// Handle the installed command to show installed versions
-    fn handle_installed() -> Result<(), AsManError> {
+    fn handle_installed() -> Result<(), AstudiosError> {
         let installer = Installer::new()?;
         let installations = installer.list_installed_studios()?;
 
@@ -375,7 +375,7 @@ impl CommandHandler {
     }
 
     /// Handle the which command to show current version
-    fn handle_which() -> Result<(), AsManError> {
+    fn handle_which() -> Result<(), AstudiosError> {
         let installer = Installer::new()?;
         let active = installer.get_active_studio()?;
 
@@ -406,7 +406,7 @@ impl CommandHandler {
     }
 
     /// Handle the update command to refresh version cache
-    fn handle_update() -> Result<(), AsManError> {
+    fn handle_update() -> Result<(), AstudiosError> {
         let reporter = ProgressReporter::new(true);
 
         // Force refresh by clearing cache

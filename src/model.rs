@@ -1,4 +1,4 @@
-use crate::error::AsManError;
+use crate::error::AstudiosError;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -189,7 +189,7 @@ pub struct InstalledAndroidStudio {
 impl InstalledAndroidStudio {
     /// Create a new InstalledAndroidStudio from a path
     /// Returns None if the path doesn't contain a valid Android Studio installation
-    pub fn new(path: PathBuf) -> Result<Option<Self>, AsManError> {
+    pub fn new(path: PathBuf) -> Result<Option<Self>, AstudiosError> {
         if !path.exists() {
             return Ok(None);
         }
@@ -207,7 +207,7 @@ impl InstalledAndroidStudio {
     }
 
     /// Parse version information from Android Studio metadata files
-    fn parse_version_info(app_path: &Path) -> Result<AndroidStudioVersion, AsManError> {
+    fn parse_version_info(app_path: &Path) -> Result<AndroidStudioVersion, AstudiosError> {
         let contents_path = app_path.join("Contents");
 
         // Parse Info.plist
@@ -229,32 +229,32 @@ impl InstalledAndroidStudio {
     }
 
     /// Parse Info.plist file for version information
-    fn parse_info_plist(plist_path: &Path) -> Result<(String, String), AsManError> {
+    fn parse_info_plist(plist_path: &Path) -> Result<(String, String), AstudiosError> {
         use plist::Value;
         use std::fs::File;
 
         let file = File::open(plist_path)
-            .map_err(|e| AsManError::General(format!("Failed to open Info.plist: {e}")))?;
+            .map_err(|e| AstudiosError::General(format!("Failed to open Info.plist: {e}")))?;
 
         let plist: Value = plist::from_reader(file)
-            .map_err(|e| AsManError::General(format!("Failed to parse Info.plist: {e}")))?;
+            .map_err(|e| AstudiosError::General(format!("Failed to parse Info.plist: {e}")))?;
 
         let dict = plist
             .as_dictionary()
-            .ok_or_else(|| AsManError::General("Info.plist is not a dictionary".to_string()))?;
+            .ok_or_else(|| AstudiosError::General("Info.plist is not a dictionary".to_string()))?;
 
         // Extract CFBundleShortVersionString
         let short_version = dict
             .get("CFBundleShortVersionString")
             .and_then(|v| v.as_string())
-            .ok_or_else(|| AsManError::General("CFBundleShortVersionString not found".to_string()))?
+            .ok_or_else(|| AstudiosError::General("CFBundleShortVersionString not found".to_string()))?
             .to_string();
 
         // Extract CFBundleVersion
         let build_version = dict
             .get("CFBundleVersion")
             .and_then(|v| v.as_string())
-            .ok_or_else(|| AsManError::General("CFBundleVersion not found".to_string()))?
+            .ok_or_else(|| AstudiosError::General("CFBundleVersion not found".to_string()))?
             .to_string();
 
         // Verify this is Android Studio
@@ -264,7 +264,7 @@ impl InstalledAndroidStudio {
             .unwrap_or("");
 
         if !bundle_id.contains("android.studio") {
-            return Err(AsManError::General(
+            return Err(AstudiosError::General(
                 "Not an Android Studio application".to_string(),
             ));
         }
@@ -275,14 +275,14 @@ impl InstalledAndroidStudio {
     /// Parse product-info.json file for additional version information
     fn parse_product_info(
         product_info_path: &Path,
-    ) -> Result<(String, String, String), AsManError> {
+    ) -> Result<(String, String, String), AstudiosError> {
         use std::fs;
 
         let content = fs::read_to_string(product_info_path)
-            .map_err(|e| AsManError::General(format!("Failed to read product-info.json: {e}")))?;
+            .map_err(|e| AstudiosError::General(format!("Failed to read product-info.json: {e}")))?;
 
         let json: serde_json::Value = serde_json::from_str(&content)
-            .map_err(|e| AsManError::General(format!("Failed to parse product-info.json: {e}")))?;
+            .map_err(|e| AstudiosError::General(format!("Failed to parse product-info.json: {e}")))?;
 
         let product_name = json
             .get("name")
@@ -294,7 +294,7 @@ impl InstalledAndroidStudio {
             .get("version")
             .and_then(|v| v.as_str())
             .ok_or_else(|| {
-                AsManError::General("Version not found in product-info.json".to_string())
+                AstudiosError::General("Version not found in product-info.json".to_string())
             })?;
 
         let build_number = json
@@ -328,7 +328,7 @@ impl InstalledAndroidStudio {
     }
 
     /// Get the full version number by matching with API data
-    pub fn get_full_version_from_api(&self) -> Result<Option<String>, AsManError> {
+    pub fn get_full_version_from_api(&self) -> Result<Option<String>, AstudiosError> {
         use crate::list::AndroidStudioLister;
 
         let lister = AndroidStudioLister::new()?;

@@ -1,5 +1,5 @@
 use crate::{
-    config::Config, detector::SystemDetector, downloader::Downloader, error::AsManError,
+    config::Config, detector::SystemDetector, downloader::Downloader, error::AstudiosError,
     model::InstalledAndroidStudio,
 };
 use colored::Colorize;
@@ -24,7 +24,7 @@ pub struct Installer {
 
 impl Installer {
     /// Create a new installer with default directories
-    pub fn new() -> Result<Self, AsManError> {
+    pub fn new() -> Result<Self, AstudiosError> {
         let install_dir = Config::versions_dir();
         let applications_dir = Config::default_applications_dir();
 
@@ -40,7 +40,7 @@ impl Installer {
     pub fn with_directories(
         install_dir: PathBuf,
         applications_dir: PathBuf,
-    ) -> Result<Self, AsManError> {
+    ) -> Result<Self, AstudiosError> {
         fs::create_dir_all(&install_dir)?;
         Ok(Self {
             install_dir,
@@ -54,7 +54,7 @@ impl Installer {
         version: &str,
         full_name: &str,
         custom_dir: Option<&str>,
-    ) -> Result<(), AsManError> {
+    ) -> Result<(), AstudiosError> {
         self.install_version_with_checks(version, full_name, custom_dir, true)
     }
 
@@ -65,7 +65,7 @@ impl Installer {
         full_name: &str,
         custom_dir: Option<&str>,
         run_checks: bool,
-    ) -> Result<(), AsManError> {
+    ) -> Result<(), AstudiosError> {
         let target_dir = if let Some(dir) = custom_dir {
             PathBuf::from(dir)
         } else {
@@ -102,7 +102,7 @@ impl Installer {
                 );
                 println!("You can use --skip-checks to bypass these checks (not recommended).");
 
-                return Err(AsManError::PrerequisiteNotMet(
+                return Err(AstudiosError::PrerequisiteNotMet(
                     "System requirements not met".to_string(),
                 ));
             }
@@ -121,7 +121,7 @@ impl Installer {
     }
 
     /// Download a specific version
-    fn download_version(&self, version: &str, full_name: &str) -> Result<PathBuf, AsManError> {
+    fn download_version(&self, version: &str, full_name: &str) -> Result<PathBuf, AstudiosError> {
         use crate::list::AndroidStudioLister;
 
         let version_dir = self.install_dir.join(version);
@@ -135,11 +135,11 @@ impl Installer {
             .items
             .iter()
             .find(|item| item.version == version)
-            .ok_or_else(|| AsManError::VersionNotFound(format!("Version {version} not found")))?;
+            .ok_or_else(|| AstudiosError::VersionNotFound(format!("Version {version} not found")))?;
 
         let download = target_item
             .get_platform_download()
-            .ok_or(AsManError::Download(
+            .ok_or(AstudiosError::Download(
                 "No download available for current platform".to_string(),
             ))?;
 
@@ -172,7 +172,7 @@ impl Installer {
     }
 
     /// Extract archive based on type
-    fn extract_archive(&self, archive_path: &Path, version: &str) -> Result<PathBuf, AsManError> {
+    fn extract_archive(&self, archive_path: &Path, version: &str) -> Result<PathBuf, AstudiosError> {
         let extract_dir = self.install_dir.join(version).join("extracted");
         fs::create_dir_all(&extract_dir)?;
 
@@ -181,7 +181,7 @@ impl Installer {
         match archive_type {
             ArchiveType::Dmg => self.extract_dmg(archive_path, &extract_dir)?,
             ArchiveType::Unsupported => {
-                return Err(AsManError::Extraction(format!(
+                return Err(AstudiosError::Extraction(format!(
                     "Unsupported archive format: {}. Only DMG files are supported on macOS.",
                     archive_path.display()
                 )));
@@ -203,7 +203,7 @@ impl Installer {
     }
 
     /// Extract DMG archive (macOS only)
-    fn extract_dmg(&self, archive_path: &Path, destination: &Path) -> Result<(), AsManError> {
+    fn extract_dmg(&self, archive_path: &Path, destination: &Path) -> Result<(), AstudiosError> {
         let temp_mount = tempfile::tempdir()?;
         let mount_point = temp_mount.path();
 
@@ -214,11 +214,11 @@ impl Installer {
                 "attach",
                 archive_path
                     .to_str()
-                    .ok_or(AsManError::Path("Invalid path".to_string()))?,
+                    .ok_or(AstudiosError::Path("Invalid path".to_string()))?,
                 "-mountpoint",
                 mount_point
                     .to_str()
-                    .ok_or(AsManError::Path("Invalid path".to_string()))?,
+                    .ok_or(AstudiosError::Path("Invalid path".to_string()))?,
                 "-nobrowse",
                 "-noverify", // Skip verification to avoid issues
             ])
@@ -227,7 +227,7 @@ impl Installer {
         if !output.status.success() {
             let error_msg = String::from_utf8_lossy(&output.stderr);
             println!("DMG mount failed: {error_msg}");
-            return Err(AsManError::Extraction(format!(
+            return Err(AstudiosError::Extraction(format!(
                 "Failed to mount DMG: {}",
                 error_msg.trim()
             )));
@@ -276,7 +276,7 @@ impl Installer {
                 }
 
                 self.detach_dmg(mount_point)?;
-                return Err(AsManError::Extraction(
+                return Err(AstudiosError::Extraction(
                     "No Android Studio .app bundle found in DMG".to_string(),
                 ));
             }
@@ -296,7 +296,7 @@ impl Installer {
 
             if !status.success() {
                 self.detach_dmg(mount_point)?;
-                return Err(AsManError::Extraction(
+                return Err(AstudiosError::Extraction(
                     "Failed to copy app bundle".to_string(),
                 ));
             }
@@ -307,7 +307,7 @@ impl Installer {
     }
 
     /// Detach DMG volume
-    fn detach_dmg(&self, mount_point: &Path) -> Result<(), AsManError> {
+    fn detach_dmg(&self, mount_point: &Path) -> Result<(), AstudiosError> {
         let output = Command::new("hdiutil")
             .args(["detach", mount_point.to_str().unwrap(), "-force"])
             .output();
@@ -334,7 +334,7 @@ impl Installer {
         version: &str,
         extracted_path: &Path,
         custom_dir: Option<&str>,
-    ) -> Result<PathBuf, AsManError> {
+    ) -> Result<PathBuf, AstudiosError> {
         let target_dir = if let Some(dir) = custom_dir {
             PathBuf::from(dir)
         } else {
@@ -359,7 +359,7 @@ impl Installer {
             }
         }
 
-        let source = app_source.ok_or(AsManError::Installation(
+        let source = app_source.ok_or(AstudiosError::Installation(
             "Android Studio.app not found in extracted files".to_string(),
         ))?;
 
@@ -377,16 +377,16 @@ impl Installer {
             .args([
                 source
                     .to_str()
-                    .ok_or(AsManError::Path("Invalid source path".to_string()))?,
+                    .ok_or(AstudiosError::Path("Invalid source path".to_string()))?,
                 app_path
                     .to_str()
-                    .ok_or(AsManError::Path("Invalid target path".to_string()))?,
+                    .ok_or(AstudiosError::Path("Invalid target path".to_string()))?,
             ])
             .output()?;
 
         if !output.status.success() {
             let error_msg = String::from_utf8_lossy(&output.stderr);
-            return Err(AsManError::Installation(format!(
+            return Err(AstudiosError::Installation(format!(
                 "Failed to install app bundle: {}",
                 error_msg.trim()
             )));
@@ -394,7 +394,7 @@ impl Installer {
 
         // Verify the installation was successful
         if !app_path.exists() {
-            return Err(AsManError::Installation(
+            return Err(AstudiosError::Installation(
                 "Installation completed but app bundle not found at target location".to_string(),
             ));
         }
@@ -404,7 +404,7 @@ impl Installer {
     }
 
     /// Clean up temporary files
-    fn cleanup_files(&self, archive_path: &Path, extracted_path: &Path) -> Result<(), AsManError> {
+    fn cleanup_files(&self, archive_path: &Path, extracted_path: &Path) -> Result<(), AstudiosError> {
         if archive_path.exists() {
             fs::remove_file(archive_path)?;
         }
@@ -415,9 +415,9 @@ impl Installer {
     }
 
     /// Verify installation integrity
-    fn verify_installation(&self, app_path: &Path) -> Result<(), AsManError> {
+    fn verify_installation(&self, app_path: &Path) -> Result<(), AstudiosError> {
         if !app_path.exists() {
-            return Err(AsManError::Installation(format!(
+            return Err(AstudiosError::Installation(format!(
                 "Installation not found at: {}",
                 app_path.display()
             )));
@@ -428,7 +428,7 @@ impl Installer {
         for dir in required_dirs {
             let path = app_path.join(dir);
             if !path.exists() {
-                return Err(AsManError::Installation(format!(
+                return Err(AstudiosError::Installation(format!(
                     "Required directory missing: {}",
                     path.display()
                 )));
@@ -441,7 +441,7 @@ impl Installer {
             .status()?;
 
         if !status.success() {
-            return Err(AsManError::Installation(
+            return Err(AstudiosError::Installation(
                 "Code signing verification failed".to_string(),
             ));
         }
@@ -450,7 +450,7 @@ impl Installer {
     }
 
     /// Create application symlink for version switching
-    fn create_symlink(&self, app_path: &Path) -> Result<(), AsManError> {
+    fn create_symlink(&self, app_path: &Path) -> Result<(), AstudiosError> {
         let symlink_path = self.applications_dir.join("Android Studio.app");
 
         println!(
@@ -487,7 +487,7 @@ impl Installer {
 
         // Ensure the target exists before creating symlink
         if !app_path.exists() {
-            return Err(AsManError::Installation(format!(
+            return Err(AstudiosError::Installation(format!(
                 "Cannot create symlink: target does not exist: {}",
                 app_path.display()
             )));
@@ -499,7 +499,7 @@ impl Installer {
                 println!("Symlink created successfully!");
                 Ok(())
             }
-            Err(e) => Err(AsManError::Installation(format!(
+            Err(e) => Err(AstudiosError::Installation(format!(
                 "Failed to create symlink from {} to {}: {}",
                 symlink_path.display(),
                 app_path.display(),
@@ -509,7 +509,7 @@ impl Installer {
     }
 
     /// Uninstall a specific version
-    pub fn uninstall_version(&self, version: &str) -> Result<(), AsManError> {
+    pub fn uninstall_version(&self, version: &str) -> Result<(), AstudiosError> {
         let installations = self.list_installed_studios()?;
 
         // Find matching installations by version query
@@ -534,7 +534,7 @@ impl Installer {
             .collect();
 
         if matching_installations.is_empty() {
-            return Err(AsManError::VersionNotFound(format!(
+            return Err(AstudiosError::VersionNotFound(format!(
                 "Android Studio version '{version}' is not installed. Use 'as-man installed' to see available versions."
             )));
         }
@@ -556,7 +556,7 @@ impl Installer {
             }
             error_msg.push_str("\nUse the full build version (e.g., 'AI-251.26094.121.2512.13840223') for exact matching.");
 
-            return Err(AsManError::General(error_msg));
+            return Err(AstudiosError::General(error_msg));
         }
 
         // Uninstall the matched version
@@ -613,7 +613,7 @@ impl Installer {
     }
 
     /// List all installed Android Studio instances
-    pub fn list_installed_studios(&self) -> Result<Vec<InstalledAndroidStudio>, AsManError> {
+    pub fn list_installed_studios(&self) -> Result<Vec<InstalledAndroidStudio>, AstudiosError> {
         let mut installations = Vec::new();
 
         if let Ok(entries) = fs::read_dir(&self.applications_dir) {
@@ -641,7 +641,7 @@ impl Installer {
     }
 
     /// List all installed versions (legacy compatibility)
-    pub fn list_installed_versions(&self) -> Result<Vec<String>, AsManError> {
+    pub fn list_installed_versions(&self) -> Result<Vec<String>, AstudiosError> {
         let installations = self.list_installed_studios()?;
         Ok(installations
             .into_iter()
@@ -650,7 +650,7 @@ impl Installer {
     }
 
     /// Get currently active Android Studio installation
-    pub fn get_active_studio(&self) -> Result<Option<InstalledAndroidStudio>, AsManError> {
+    pub fn get_active_studio(&self) -> Result<Option<InstalledAndroidStudio>, AstudiosError> {
         let symlink_path = self.applications_dir.join("Android Studio.app");
 
         if symlink_path.exists() && symlink_path.is_symlink() {
@@ -665,7 +665,7 @@ impl Installer {
     }
 
     /// Get currently active version (legacy compatibility)
-    pub fn get_active_version(&self) -> Result<Option<String>, AsManError> {
+    pub fn get_active_version(&self) -> Result<Option<String>, AstudiosError> {
         if let Some(active) = self.get_active_studio()? {
             Ok(Some(active.version.short_version))
         } else {
@@ -674,7 +674,7 @@ impl Installer {
     }
 
     /// Switch to a different Android Studio installation by identifier
-    pub fn switch_to_studio(&self, identifier: &str) -> Result<(), AsManError> {
+    pub fn switch_to_studio(&self, identifier: &str) -> Result<(), AstudiosError> {
         let installations = self.list_installed_studios()?;
 
         // Find installation by various version identifiers
@@ -695,7 +695,7 @@ impl Installer {
                 install.get_full_version_from_api().unwrap_or(None).as_ref().is_some_and(|v| v.starts_with(identifier))
             })
             .ok_or_else(|| {
-                AsManError::VersionNotFound(format!(
+                AstudiosError::VersionNotFound(format!(
                     "Android Studio with identifier '{identifier}' is not installed"
                 ))
             })?;
@@ -705,7 +705,7 @@ impl Installer {
     }
 
     /// Switch to a different version (legacy compatibility)
-    pub fn switch_to_version(&self, version: &str) -> Result<(), AsManError> {
+    pub fn switch_to_version(&self, version: &str) -> Result<(), AstudiosError> {
         self.switch_to_studio(version)
     }
 }

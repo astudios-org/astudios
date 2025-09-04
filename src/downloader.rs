@@ -1,4 +1,4 @@
-use crate::{config::Config, error::AsManError};
+use crate::{config::Config, error::AstudiosError};
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -25,7 +25,7 @@ impl Downloader {
     }
 
     /// Find aria2 executable in system PATH or common locations
-    pub fn find_aria2() -> Result<PathBuf, AsManError> {
+    pub fn find_aria2() -> Result<PathBuf, AstudiosError> {
         for path_str in Config::aria2_search_paths() {
             // Try to execute the command to verify it exists
             if let Ok(status) = Command::new(path_str)
@@ -48,7 +48,7 @@ impl Downloader {
             }
         }
 
-        Err(AsManError::DownloaderNotFound(
+        Err(AstudiosError::DownloaderNotFound(
             "aria2 not found in system PATH".to_string(),
         ))
     }
@@ -59,7 +59,7 @@ impl Downloader {
         url: &str,
         destination: &Path,
         progress_name: Option<&str>,
-    ) -> Result<(), AsManError> {
+    ) -> Result<(), AstudiosError> {
         // Ensure destination directory exists
         if let Some(parent) = destination.parent() {
             fs::create_dir_all(parent)?;
@@ -79,7 +79,7 @@ impl Downloader {
         url: &str,
         destination: &Path,
         _progress_name: Option<&str>,
-    ) -> Result<(), AsManError> {
+    ) -> Result<(), AstudiosError> {
         use reqwest::blocking::Client;
 
         let client = Client::builder()
@@ -101,7 +101,7 @@ impl Downloader {
         url: &str,
         destination: &Path,
         _progress_name: Option<&str>,
-    ) -> Result<(), AsManError> {
+    ) -> Result<(), AstudiosError> {
         let mut cmd = Command::new(aria2_path);
 
         cmd.arg(url)
@@ -111,7 +111,7 @@ impl Downloader {
             .arg(
                 destination
                     .file_name()
-                    .ok_or(AsManError::Path("Invalid destination filename".to_string()))?,
+                    .ok_or(AstudiosError::Path("Invalid destination filename".to_string()))?,
             )
             .arg(format!(
                 "--max-connection-per-server={}",
@@ -141,7 +141,7 @@ impl Downloader {
                 })
                 .unwrap_or_else(|| "Unknown error".to_string());
 
-            Err(AsManError::Download(format!(
+            Err(AstudiosError::Download(format!(
                 "aria2 download failed: {}",
                 stderr.trim()
             )))

@@ -1,7 +1,7 @@
 use crate::{
     api::ApiClient,
     config::Config,
-    error::AsManError,
+    error::AstudiosError,
     model::{AndroidStudio, AndroidStudioReleasesList},
     progress::ProgressReporter,
 };
@@ -18,20 +18,20 @@ pub struct AndroidStudioLister {
 
 impl AndroidStudioLister {
     /// Create a new Android Studio lister with default cache directory
-    pub fn new() -> Result<Self, AsManError> {
+    pub fn new() -> Result<Self, AstudiosError> {
         let cache_dir = Config::cache_dir();
         fs::create_dir_all(&cache_dir)?;
         Ok(Self { cache_dir })
     }
 
     /// Create a new Android Studio lister with custom cache directory
-    pub fn with_cache_dir(cache_dir: PathBuf) -> Result<Self, AsManError> {
+    pub fn with_cache_dir(cache_dir: PathBuf) -> Result<Self, AstudiosError> {
         fs::create_dir_all(&cache_dir)?;
         Ok(Self { cache_dir })
     }
 
     /// Get Android Studio releases with caching
-    pub fn get_releases(&self) -> Result<AndroidStudioReleasesList, AsManError> {
+    pub fn get_releases(&self) -> Result<AndroidStudioReleasesList, AstudiosError> {
         let cache_path = self.cache_dir.join("releases.json");
 
         // Check if cache exists and is valid
@@ -53,29 +53,29 @@ impl AndroidStudioLister {
     }
 
     /// Get the latest stable release
-    pub fn get_latest_release(&self) -> Result<AndroidStudio, AsManError> {
+    pub fn get_latest_release(&self) -> Result<AndroidStudio, AstudiosError> {
         let releases = self.get_releases()?;
         releases
             .items
             .into_iter()
             .find(|item| item.is_release())
-            .ok_or_else(|| AsManError::VersionNotFound("No release versions available".to_string()))
+            .ok_or_else(|| AstudiosError::VersionNotFound("No release versions available".to_string()))
     }
 
     /// Get the latest pre-release (beta or canary)
-    pub fn get_latest_prerelease(&self) -> Result<AndroidStudio, AsManError> {
+    pub fn get_latest_prerelease(&self) -> Result<AndroidStudio, AstudiosError> {
         let releases = self.get_releases()?;
         releases
             .items
             .into_iter()
             .find(|item| item.is_beta() || item.is_canary())
             .ok_or_else(|| {
-                AsManError::VersionNotFound("No pre-release versions available".to_string())
+                AstudiosError::VersionNotFound("No pre-release versions available".to_string())
             })
     }
 
     /// Find a version by query string (supports partial matches)
-    pub fn find_version_by_query(&self, query: &str) -> Result<AndroidStudio, AsManError> {
+    pub fn find_version_by_query(&self, query: &str) -> Result<AndroidStudio, AstudiosError> {
         let releases = self.get_releases()?;
         let query = query.to_lowercase();
 
@@ -119,7 +119,7 @@ impl AndroidStudioLister {
     fn load_cached_releases(
         &self,
         cache_path: &PathBuf,
-    ) -> Result<Option<AndroidStudioReleasesList>, AsManError> {
+    ) -> Result<Option<AndroidStudioReleasesList>, AstudiosError> {
         if !cache_path.exists() {
             return Ok(None);
         }
@@ -142,7 +142,7 @@ impl AndroidStudioLister {
         &self,
         cache_path: &PathBuf,
         content: &AndroidStudioReleasesList,
-    ) -> Result<(), AsManError> {
+    ) -> Result<(), AstudiosError> {
         let data = serde_json::to_string_pretty(content)?;
         fs::write(cache_path, data)?;
         Ok(())
@@ -153,7 +153,7 @@ impl AndroidStudioLister {
         &self,
         items: &[AndroidStudio],
         query: &str,
-    ) -> Result<AndroidStudio, AsManError> {
+    ) -> Result<AndroidStudio, AstudiosError> {
         let parts: Vec<&str> = query.split_whitespace().collect();
 
         if parts.len() >= 2 {
@@ -168,7 +168,7 @@ impl AndroidStudioLister {
             }
         }
 
-        Err(AsManError::VersionNotFound(format!(
+        Err(AstudiosError::VersionNotFound(format!(
             "Version '{query}' not found. Use 'as-man list' to see available versions."
         )))
     }

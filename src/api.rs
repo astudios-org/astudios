@@ -1,4 +1,4 @@
-use crate::{config::Config, error::AsManError, model::AndroidStudioReleasesList};
+use crate::{config::Config, error::AstudiosError, model::AndroidStudioReleasesList};
 use reqwest::blocking::Client;
 use std::time::Duration;
 
@@ -9,12 +9,12 @@ pub struct ApiClient {
 
 impl ApiClient {
     /// Create a new API client with default configuration
-    pub fn new() -> Result<Self, AsManError> {
+    pub fn new() -> Result<Self, AstudiosError> {
         Self::with_timeout(Config::NETWORK_TIMEOUT_SECS)
     }
 
     /// Create a new API client with custom timeout
-    pub fn with_timeout(seconds: u64) -> Result<Self, AsManError> {
+    pub fn with_timeout(seconds: u64) -> Result<Self, AstudiosError> {
         let client = Client::builder()
             .timeout(Duration::from_secs(seconds))
             .user_agent(Config::user_agent())
@@ -24,7 +24,7 @@ impl ApiClient {
     }
 
     /// Fetch Android Studio releases from JetBrains API
-    pub fn fetch_releases(&self) -> Result<AndroidStudioReleasesList, AsManError> {
+    pub fn fetch_releases(&self) -> Result<AndroidStudioReleasesList, AstudiosError> {
         let response = self.client.get(Config::RELEASES_FEED_URL).send()?;
         let bytes = response.bytes()?;
 

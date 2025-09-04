@@ -5,7 +5,7 @@ pub struct Config;
 
 impl Config {
     /// Application name used for directory creation
-    pub const APP_NAME: &'static str = "as-man";
+    pub const APP_NAME: &'static str = "astudios";
 
     /// Default cache expiration time (24 hours)
     pub const CACHE_DURATION_SECS: u64 = 60 * 60 * 24;

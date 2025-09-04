@@ -2,9 +2,9 @@
 source: tests/cli_tests.rs
 expression: stdout
 ---
-Install a specific Android Studio version to ~/.as-man/versions and /Applications
+Install a specific Android Studio version to ~/.astudios/versions and /Applications
 
-Usage: as-man install [OPTIONS] [VERSION]
+Usage: astudios install [OPTIONS] [VERSION]
 
 Arguments:
   [VERSION]  Version to install (e.g., "2024.3.2.14", "Android Studio Meerkat Feature Drop", "2023.3.1 Canary 8")

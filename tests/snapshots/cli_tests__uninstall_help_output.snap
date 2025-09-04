@@ -4,7 +4,7 @@ expression: stdout
 ---
 Uninstall a specific Android Studio version
 
-Usage: as-man uninstall <VERSION>
+Usage: astudios uninstall <VERSION>
 
 Arguments:
   <VERSION>  Version to uninstall
