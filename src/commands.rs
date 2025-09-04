@@ -305,12 +305,20 @@ impl CommandHandler {
     /// Handle the uninstall command
     fn handle_uninstall(version: &str) -> Result<(), AsManError> {
         let installer = Installer::new()?;
+
+        println!();
+        println!("{} Uninstalling Android Studio {}...", "🗑️".red(), version);
+        println!();
+
         installer.uninstall_version(version)?;
+
+        println!();
         println!(
             "{} Successfully uninstalled Android Studio {}",
             "✅".green(),
             version
         );
+
         Ok(())
     }
 
@@ -344,15 +352,22 @@ impl CommandHandler {
                 } else {
                     "  "
                 };
+
+                // Use enhanced display name for better version identification
+                let enhanced_name = installation.enhanced_display_name();
+                let detailed_version = installation.extract_detailed_version();
+
+                println!("{indicator} {}", enhanced_name.green().bold());
                 println!(
-                    "{indicator} {} ({})",
-                    installation.display_name().green(),
+                    "       Version: {} | Build: {}",
+                    detailed_version.cyan(),
                     installation.identifier().blue()
                 );
                 println!(
                     "       Path: {}",
                     installation.path.display().to_string().dimmed()
                 );
+                println!();
             }
         }
 

@@ -316,6 +316,72 @@ impl InstalledAndroidStudio {
         )
     }
 
+    /// Extract detailed version information, preferring API version over short version
+    pub fn extract_detailed_version(&self) -> String {
+        // Try to get full version from API first
+        if let Ok(Some(api_version)) = self.get_full_version_from_api() {
+            api_version
+        } else {
+            // Fallback to short version
+            self.version.short_version.clone()
+        }
+    }
+
+    /// Get the full version number by matching with API data
+    pub fn get_full_version_from_api(&self) -> Result<Option<String>, AsManError> {
+        use crate::list::AndroidStudioLister;
+
+        let lister = AndroidStudioLister::new()?;
+        let releases = lister.get_releases()?;
+
+        // Try to find matching release by build version
+        for release in &releases.items {
+            if release.build == self.version.build_version {
+                return Ok(Some(release.version.clone()));
+            }
+        }
+
+        Ok(None)
+    }
+
+    /// Get enhanced display name with detailed version information
+    pub fn enhanced_display_name(&self) -> String {
+        let detailed_version = self.extract_detailed_version();
+        let channel_info = self.detect_channel_from_name();
+
+        if channel_info.is_empty() {
+            format!("{} {}", self.version.product_name, detailed_version)
+        } else {
+            format!(
+                "{} {} ({})",
+                self.version.product_name, detailed_version, channel_info
+            )
+        }
+    }
+
+    /// Detect release channel information from app name
+    fn detect_channel_from_name(&self) -> String {
+        let app_name = self
+            .path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
+
+        if app_name.contains("Patch") {
+            "Patch".to_string()
+        } else if app_name.contains("Feature Drop") {
+            "Feature Drop".to_string()
+        } else if app_name.contains("Beta") {
+            "Beta".to_string()
+        } else if app_name.contains("Canary") {
+            "Canary".to_string()
+        } else if app_name.contains("RC") {
+            "RC".to_string()
+        } else {
+            "Release".to_string()
+        }
+    }
+
     /// Get the unique identifier for this installation
     pub fn identifier(&self) -> String {
         self.version.identifier()

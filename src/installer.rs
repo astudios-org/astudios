@@ -510,18 +510,103 @@ impl Installer {
 
     /// Uninstall a specific version
     pub fn uninstall_version(&self, version: &str) -> Result<(), AsManError> {
-        let app_path = self
-            .applications_dir
-            .join(format!("Android Studio-{version}.app"));
+        let installations = self.list_installed_studios()?;
 
-        if app_path.exists() {
-            fs::remove_dir_all(&app_path)?;
+        // Find matching installations by version query
+        let matching_installations: Vec<_> = installations
+            .iter()
+            .filter(|install| {
+                // Match by short version (e.g., "2025.1")
+                install.version.short_version == version ||
+                // Match by build version (e.g., "AI-251.26094.121.2512.13840223")
+                install.version.build_version == version ||
+                // Match by identifier (same as build version)
+                install.identifier() == version ||
+
+                // Match by API version (e.g., "2025.1.3.7")
+                install.get_full_version_from_api().unwrap_or(None).as_ref() == Some(&version.to_string()) ||
+                // Partial match for short version (e.g., "2025.1" matches "2025.1.2")
+                install.version.short_version.starts_with(version) ||
+
+                // Partial match for API version (e.g., "2025.1.3" matches "2025.1.3.7")
+                install.get_full_version_from_api().unwrap_or(None).as_ref().is_some_and(|v| v.starts_with(version))
+            })
+            .collect();
+
+        if matching_installations.is_empty() {
+            return Err(AsManError::VersionNotFound(format!(
+                "Android Studio version '{version}' is not installed. Use 'as-man installed' to see available versions."
+            )));
         }
 
-        // Remove from install directory
-        let version_dir = self.install_dir.join(version);
-        if version_dir.exists() {
-            fs::remove_dir_all(&version_dir)?;
+        // If multiple matches, show them and ask for more specific input
+        if matching_installations.len() > 1 {
+            let mut error_msg = format!(
+                "Multiple Android Studio installations match '{version}'. Please be more specific:\n"
+            );
+            for install in &matching_installations {
+                let detailed_version = install.extract_detailed_version();
+                error_msg.push_str(&format!(
+                    "  - {}\n    Version: {} | Build: {}\n    Path: {}\n",
+                    install.enhanced_display_name(),
+                    detailed_version,
+                    install.identifier(),
+                    install.path.display()
+                ));
+            }
+            error_msg.push_str("\nUse the full build version (e.g., 'AI-251.26094.121.2512.13840223') for exact matching.");
+
+            return Err(AsManError::General(error_msg));
+        }
+
+        // Uninstall the matched version
+        let installation = &matching_installations[0];
+        let app_path = &installation.path;
+
+        let detailed_version = installation.extract_detailed_version();
+
+        println!(
+            "Uninstalling {} from {}...",
+            installation.enhanced_display_name().green(),
+            app_path.display().to_string().dimmed()
+        );
+        println!(
+            "Version: {} | Build: {}",
+            detailed_version.cyan(),
+            installation.identifier().blue()
+        );
+
+        // Check if this is the currently active version
+        if let Ok(Some(active)) = self.get_active_studio() {
+            if active.path == *app_path {
+                println!("Removing symlink for currently active version...");
+                let symlink_path = self.applications_dir.join("Android Studio.app");
+                if symlink_path.exists() || symlink_path.is_symlink() {
+                    fs::remove_file(&symlink_path)?;
+                }
+            }
+        }
+
+        // Remove the application bundle
+        if app_path.exists() {
+            fs::remove_dir_all(app_path)?;
+            println!("Removed application bundle: {}", app_path.display());
+        }
+
+        // Remove from install directory if it exists
+        // Try to match by short version first, then by build version
+        let possible_version_dirs = vec![
+            self.install_dir.join(&installation.version.short_version),
+            self.install_dir.join(&installation.version.build_version),
+            self.install_dir.join(version), // Original input
+        ];
+
+        for version_dir in possible_version_dirs {
+            if version_dir.exists() {
+                fs::remove_dir_all(&version_dir)?;
+                println!("Removed installation files: {}", version_dir.display());
+                break;
+            }
         }
 
         Ok(())
@@ -538,6 +623,11 @@ impl Installer {
 
                 // Check if it's an Android Studio app bundle
                 if name.contains("Android Studio") && name.ends_with(".app") {
+                    // Skip any other symlinks to avoid duplicates
+                    if path.is_symlink() {
+                        continue;
+                    }
+
                     if let Ok(Some(installed)) = InstalledAndroidStudio::new(path) {
                         installations.push(installed);
                     }
@@ -587,11 +677,22 @@ impl Installer {
     pub fn switch_to_studio(&self, identifier: &str) -> Result<(), AsManError> {
         let installations = self.list_installed_studios()?;
 
-        // Find installation by identifier (build version) or short version
+        // Find installation by various version identifiers
         let target_installation = installations
             .iter()
             .find(|install| {
-                install.identifier() == identifier || install.version.short_version == identifier
+                // Match by build version (e.g., "AI-251.26094.121.2513.14007798")
+                install.identifier() == identifier ||
+                // Match by short version (e.g., "2025.1")
+                install.version.short_version == identifier ||
+
+                // Match by API version (e.g., "2025.1.3.7")
+                install.get_full_version_from_api().unwrap_or(None).as_ref() == Some(&identifier.to_string()) ||
+                // Partial match for short version (e.g., "2025.1" matches "2025.1.2")
+                install.version.short_version.starts_with(identifier) ||
+
+                // Partial match for API version (e.g., "2025.1.3" matches "2025.1.3.7")
+                install.get_full_version_from_api().unwrap_or(None).as_ref().is_some_and(|v| v.starts_with(identifier))
             })
             .ok_or_else(|| {
                 AsManError::VersionNotFound(format!(
