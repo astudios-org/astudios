@@ -26,7 +26,7 @@ We welcome community contributions to add support for other operating systems in
 
 ### Build from source
 ```bash
-git clone https://github.com/Binlogo/astudios.git
+git clone https://github.com/astudios-org/astudios.git
 cd astudios
 cargo install --path .
 ```
