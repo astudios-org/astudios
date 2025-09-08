@@ -12,21 +12,16 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Function to print colored output
-print_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+# Unified print function
+print_msg() {
+    local type=$1
+    local msg=$2
+    case $type in
+        "info") echo -e "${BLUE}[INFO]${NC} $msg" ;;
+        "success") echo -e "${GREEN}[SUCCESS]${NC} $msg" ;;
+        "warning") echo -e "${YELLOW}[WARNING]${NC} $msg" ;;
+        "error") echo -e "${RED}[ERROR]${NC} $msg" ;;
+    esac
 }
 
 # Function to check if command exists
@@ -36,30 +31,24 @@ command_exists() {
 
 # Function to check prerequisites
 check_prerequisites() {
-    print_info "Checking prerequisites..."
+    print_msg "info" "Checking prerequisites..."
     
     # Check if cargo-release is installed
     if ! command_exists cargo-release; then
-        print_error "cargo-release is not installed. Installing..."
+        print_msg "error" "cargo-release is not installed. Installing..."
         cargo install cargo-release
-    fi
-    
-    # Check if cargo-audit is installed
-    if ! command_exists cargo-audit; then
-        print_warning "cargo-audit is not installed. Installing..."
-        cargo install cargo-audit
     fi
     
     # Check if git is clean
     if ! git diff-index --quiet HEAD --; then
-        print_error "Working directory is not clean. Please commit or stash your changes."
+        print_msg "error" "Working directory is not clean. Please commit or stash your changes."
         exit 1
     fi
     
     # Check if we're on the main branch
     current_branch=$(git branch --show-current)
     if [ "$current_branch" != "main" ]; then
-        print_warning "You're not on the main branch (current: $current_branch)"
+        print_msg "warning" "You're not on the main branch (current: $current_branch)"
         read -p "Do you want to continue? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -67,145 +56,138 @@ check_prerequisites() {
         fi
     fi
     
-    print_success "Prerequisites check passed"
+    print_msg "success" "Prerequisites check passed"
 }
 
 # Function to show usage
 show_usage() {
     echo "Usage: $0 [RELEASE_TYPE]"
     echo ""
-    echo "RELEASE_TYPE can be one of:"
-    echo "  patch    - Patch release (0.1.0 -> 0.1.1)"
-    echo "  minor    - Minor release (0.1.0 -> 0.2.0)"
-    echo "  major    - Major release (0.1.0 -> 1.0.0)"
-    echo "  alpha    - Alpha pre-release (0.1.0 -> 0.1.1-alpha.1)"
-    echo "  beta     - Beta pre-release (0.1.0 -> 0.1.1-beta.1)"
-    echo "  rc       - Release candidate (0.1.0 -> 0.1.1-rc.1)"
-    echo ""
-    echo "If no RELEASE_TYPE is provided, you will be prompted to choose."
+    echo "RELEASE_TYPE: patch|minor|major|alpha|beta|rc"
+    echo "If no type is provided, defaults to 'patch'"
 }
 
-# Function to prompt for release type
-prompt_release_type() {
-    echo "Select release type:"
-    echo "1) patch (0.1.0 -> 0.1.1)"
-    echo "2) minor (0.1.0 -> 0.2.0)"
-    echo "3) major (0.1.0 -> 1.0.0)"
-    echo "4) alpha (0.1.0 -> 0.1.1-alpha.1)"
-    echo "5) beta (0.1.0 -> 0.1.1-beta.1)"
-    echo "6) rc (0.1.0 -> 0.1.1-rc.1)"
-    
-    read -p "Enter your choice (1-6): " choice
-    
-    case $choice in
-        1) echo "patch" ;;
-        2) echo "minor" ;;
-        3) echo "major" ;;
-        4) echo "alpha" ;;
-        5) echo "beta" ;;
-        6) echo "rc" ;;
-        *) 
-            print_error "Invalid choice"
-            exit 1
+# Function to validate release type
+validate_release_type() {
+    local type=$1
+    case $type in
+        "patch"|"minor"|"major"|"alpha"|"beta"|"rc")
+            return 0
+            ;;
+        *)
+            return 1
             ;;
     esac
+}
+
+# Function to confirm release with user
+confirm_release() {
+    local release_type=$1
+    print_msg "warning" "This will create a $release_type release and publish to crates.io!"
+    read -p "Continue? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        return 0
+    else
+        print_msg "info" "Release cancelled by user"
+        exit 0
+    fi
 }
 
 # Function to perform dry run
 dry_run() {
     local release_type=$1
-    print_info "Performing dry run for $release_type release..."
+    print_msg "info" "Performing dry run for $release_type release..."
     
-    case $release_type in
-        "patch"|"minor"|"major")
-            cargo release $release_type --dry-run
-            ;;
-        "alpha"|"beta"|"rc")
-            cargo release --profile $release_type --dry-run
-            ;;
-        *)
-            print_error "Unknown release type: $release_type"
-            exit 1
-            ;;
-    esac
+    local cmd="cargo release"
+    if [[ "$release_type" =~ ^(alpha|beta|rc)$ ]]; then
+        cmd="$cmd --profile $release_type"
+    else
+        cmd="$cmd $release_type"
+    fi
+    
+    if $cmd 2>&1; then
+        print_msg "success" "Dry run completed successfully"
+        return 0
+    else
+        print_msg "error" "Dry run failed. Please fix the issues and try again."
+        return 1
+    fi
 }
 
 # Function to perform actual release
 perform_release() {
     local release_type=$1
-    print_info "Performing $release_type release..."
+    print_msg "info" "Performing $release_type release..."
     
-    case $release_type in
-        "patch"|"minor"|"major")
-            cargo release $release_type --execute
-            ;;
-        "alpha"|"beta"|"rc")
-            cargo release --profile $release_type --execute
-            ;;
-        *)
-            print_error "Unknown release type: $release_type"
-            exit 1
-            ;;
-    esac
+    local cmd="cargo release"
+    if [[ "$release_type" =~ ^(alpha|beta|rc)$ ]]; then
+        cmd="$cmd --profile $release_type --execute"
+    else
+        cmd="$cmd $release_type --execute"
+    fi
+    
+    if $cmd; then
+        return 0
+    else
+        print_msg "error" "Release command failed"
+        return 1
+    fi
 }
 
 # Main function
 main() {
-    # Check for help first, before any other operations
-    if [ $# -eq 1 ] && [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    # Check for help
+    if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
         show_usage
         exit 0
     fi
     
-    print_info "Starting release process for astudios..."
+    print_msg "info" "Starting release process for astudios..."
     
     # Check prerequisites
     check_prerequisites
     
-    # Determine release type
-    local release_type=""
-    if [ $# -eq 0 ]; then
-        release_type=$(prompt_release_type)
-    elif [ $# -eq 1 ]; then
-        case $1 in
-            "patch"|"minor"|"major"|"alpha"|"beta"|"rc")
-                release_type=$1
-                ;;
-            *)
-                print_error "Invalid release type: $1"
-                show_usage
-                exit 1
-                ;;
-        esac
-    else
-        print_error "Too many arguments"
+    # Determine release type (default to patch if not provided)
+    local release_type="${1:-patch}"
+    
+    # Validate release type
+    if ! validate_release_type "$release_type"; then
+        print_msg "error" "Invalid release type: $release_type"
         show_usage
         exit 1
     fi
     
-    print_info "Selected release type: $release_type"
+    print_msg "info" "Selected release type: $release_type"
     
-    # Perform dry run first
-    dry_run $release_type
-    
-    # Ask for confirmation
-    echo ""
-    print_warning "This will create a $release_type release. Are you sure?"
-    read -p "Continue with release? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_info "Release cancelled"
-        exit 0
+    # Perform dry run
+    if ! dry_run "$release_type"; then
+        print_msg "error" "Please fix the issues and run the script again."
+        exit 1
     fi
     
-    # Perform actual release
-    perform_release $release_type
+    # Show release summary and confirm
+    echo ""
+    print_msg "info" "=== Release Summary ==="
+    echo "  Release type: $release_type"
+    echo "  Current version: $(cargo metadata --no-deps --format-version 1 2>/dev/null | jq -r '.packages[0].version' 2>/dev/null || echo 'unknown')"
+    echo "  Branch: $(git branch --show-current 2>/dev/null || echo 'unknown')"
+    echo ""
     
-    print_success "Release completed successfully!"
-    print_info "Don't forget to:"
-    print_info "  1. Check the GitHub release page"
-    print_info "  2. Verify the crates.io publication"
-    print_info "  3. Update any documentation if needed"
+    # Get user confirmation
+    confirm_release "$release_type"
+    
+    # Perform actual release
+    print_msg "info" "🚀 Starting actual release process..."
+    
+    if perform_release "$release_type"; then
+        print_msg "success" "🎉 Release completed successfully!"
+        print_msg "info" "Check: https://github.com/astudios-org/astudios/releases"
+        print_msg "info" "Verify: https://crates.io/crates/astudios"
+    else
+        print_msg "error" "❌ Release failed!"
+        exit 1
+    fi
 }
 
 # Run main function with all arguments
