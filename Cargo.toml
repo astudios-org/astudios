@@ -1,6 +1,6 @@
 [package]
 name = "astudios"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["astudios contributors"]
 description = "A CLI tool for managing Android Studio versions"
