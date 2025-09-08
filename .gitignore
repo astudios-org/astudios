@@ -16,3 +16,11 @@
 # Local configuration
 .env
 .env.local
+
+# Release artifacts
+*.tar.gz
+*.zip
+release-artifacts/
+
+# Cargo release temporary files
+.cargo-release-backup/

@@ -1,0 +1,13 @@
+# cargo-release configuration
+# See: https://github.com/crate-ci/cargo-release/blob/master/docs/reference.md
+
+# Tag configuration
+tag-prefix = "v"
+tag-name = "v{{version}}"
+
+# Push configuration  
+push-remote = "origin"
+
+# Don't sign commits/tags by default (can be overridden with --sign)
+sign-commit = false
+sign-tag = false
