@@ -5,7 +5,7 @@ use astudios::{
     error::AstudiosError,
     installer::Installer,
     list::AndroidStudioLister,
-    model::{AndroidStudio, ReleaseChannel},
+    model::{AndroidStudio, InstalledAndroidStudio, ReleaseChannel},
     progress::ProgressReporter,
 };
 use colored::Colorize;
@@ -83,6 +83,11 @@ impl CommandHandler {
             items
         };
 
+        // Get installed versions and active version for status display
+        let installer = Installer::new()?;
+        let installed_studios = installer.list_installed_studios().unwrap_or_default();
+        let active_studio = installer.get_active_studio().unwrap_or_default();
+
         // Display header with platform information
         if all_platforms {
             println!(
@@ -121,13 +126,17 @@ impl CommandHandler {
         }
 
         for item in display_items.iter().rev() {
-            Self::print_version_info(item);
+            Self::print_version_info(item, &installed_studios, &active_studio);
         }
 
         Ok(())
     }
 
-    fn print_version_info(item: &AndroidStudio) {
+    fn print_version_info(
+        item: &AndroidStudio,
+        installed_studios: &[InstalledAndroidStudio],
+        active_studio: &Option<InstalledAndroidStudio>,
+    ) {
         let channel_color = match item.channel_type() {
             ReleaseChannel::Release => "Release".green(),
             ReleaseChannel::Beta => "Beta".yellow(),
@@ -136,11 +145,37 @@ impl CommandHandler {
             ReleaseChannel::Patch => "Patch".cyan(),
         };
 
+        // Check if this version is installed
+        let is_installed = installed_studios.iter().any(|installed| {
+            // Match by version or build number
+            installed.version.short_version == item.version
+                || installed.version.build_version == item.build
+                || installed.version.build_number == item.build
+        });
+
+        // Check if this version is currently selected/active
+        let is_selected = if let Some(active) = active_studio {
+            active.version.short_version == item.version
+                || active.version.build_version == item.build
+                || active.version.build_number == item.build
+        } else {
+            false
+        };
+
+        // Build status string like xcodes
+        let status = match (is_installed, is_selected) {
+            (true, true) => " [Installed, Selected]".green(),
+            (true, false) => " [Installed]".green(),
+            (false, true) => " [Selected]".green(), // This shouldn't happen in practice
+            (false, false) => "".normal(),
+        };
+
         println!(
-            "{} {} ({})",
+            "{} {} ({}){}",
             ">".dimmed(),
             item.version.bold(),
-            channel_color
+            channel_color,
+            status
         );
         println!("  {} {}", "Name:".dimmed(), item.name);
         println!("  {} {}", "Build:".dimmed(), item.build);
