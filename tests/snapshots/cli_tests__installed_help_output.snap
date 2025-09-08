@@ -2,7 +2,7 @@
 source: tests/cli_tests.rs
 expression: stdout
 ---
-Show currently installed versions
+List the versions of Android Studio that are installed
 
 Usage: astudios installed
 

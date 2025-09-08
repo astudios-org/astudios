@@ -2,7 +2,7 @@
 source: tests/cli_tests.rs
 expression: stdout
 ---
-Update the local releases cache
+Update the list of available versions of Android Studio
 
 Usage: astudios update
 

@@ -2,7 +2,7 @@
 source: tests/cli_tests.rs
 expression: stdout
 ---
-Install a specific Android Studio version to ~/.astudios/versions and /Applications
+Download and install a specific version of Android Studio
 
 Usage: astudios install [OPTIONS] [VERSION]
 

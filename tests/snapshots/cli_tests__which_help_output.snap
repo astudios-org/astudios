@@ -2,7 +2,7 @@
 source: tests/cli_tests.rs
 expression: stdout
 ---
-Show which version is currently active
+Show which version is currently selected
 
 Usage: astudios which
 

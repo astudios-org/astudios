@@ -2,7 +2,7 @@
 source: tests/cli_tests.rs
 expression: stdout
 ---
-List available Android Studio versions
+List all versions of Android Studio that are available to install
 
 Usage: astudios list [OPTIONS]
 
