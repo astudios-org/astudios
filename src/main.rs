@@ -12,7 +12,6 @@ fn main() {
         match e {
             AstudiosError::VersionNotFound(msg) => {
                 eprintln!("Error: {msg}");
-                eprintln!("Use 'astudios list' to see available versions");
             }
             AstudiosError::Download(msg) => {
                 eprintln!("Download Error: {msg}");

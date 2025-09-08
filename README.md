@@ -44,17 +44,17 @@ astudios list
 astudios install --latest
 
 # Install a specific version
-astudios install 2024.3.2.14
+astudios install 2025.1.3.7
 
 # Install with custom directory
-astudios install 2024.3.2.14 --directory ~/Applications/Custom
+astudios install 2025.1.3.7 --directory ~/Applications/Custom
 ```
 
 If you have aria2 installed (available via Homebrew: `brew install aria2`), astudios will automatically use it for downloads, which significantly speeds up the download process.
 
 ### Switch between versions
 ```bash
-astudios use 2024.3.2.14
+astudios use 2025.1.3.7
 ```
 
 ### Show installed versions
@@ -69,7 +69,7 @@ astudios which
 
 ### Uninstall a version
 ```bash
-astudios uninstall 2024.3.2.14
+astudios uninstall 2025.1.3.7
 ```
 
 ## Examples
@@ -82,10 +82,10 @@ astudios list --limit 10
 astudios install --latest
 
 # Install a specific beta version
-astudios install "2024.3.1 Beta 2"
+astudios install "2025.1.4 Canary 4"
 
 # Install to custom directory
-astudios install 2024.3.2.14 --directory ~/Applications
+astudios install 2025.1.3.7 --directory ~/Applications
 ```
 
 ## License

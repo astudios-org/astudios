@@ -706,7 +706,7 @@ impl Installer {
             })
             .ok_or_else(|| {
                 AstudiosError::VersionNotFound(format!(
-                    "Android Studio with identifier '{identifier}' is not installed"
+                    "Android Studio with identifier '{identifier}' is not installed.\nUse 'astudios installed' to see installed versions or 'astudios install {identifier}' to install it."
                 ))
             })?;
 
