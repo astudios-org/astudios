@@ -4,8 +4,8 @@ use clap::{Parser, Subcommand};
 #[command(
     name = "astudios",
     version = "0.1.0",
-    about = "Android Studios Manager - A CLI tool for managing Android Studio versions",
-    long_about = "astudios is a command-line tool inspired by xcodes, built specifically for managing Android Studio installations on your local machine."
+    about = "Manage the Android Studio installations",
+    long_about = "Manage the Android Studio installations"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -14,7 +14,7 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// List available Android Studio versions
+    /// List all versions of Android Studio that are available to install
     List {
         /// Show only release versions
         #[arg(long)]
@@ -55,7 +55,7 @@ pub enum Commands {
         directory: Option<String>,
     },
 
-    /// Install a specific Android Studio version to ~/.astudios/versions and /Applications
+    /// Download and install a specific version of Android Studio
     Install {
         /// Version to install (e.g., "2024.3.2.14", "Android Studio Meerkat Feature Drop", "2023.3.1 Canary 8")
         version: Option<String>,
@@ -73,24 +73,24 @@ pub enum Commands {
         skip_checks: bool,
     },
 
-    /// Uninstall a specific Android Studio version
+    /// Uninstall a version of Android Studio
     Uninstall {
         /// Version to uninstall
         version: String,
     },
 
-    /// Switch to a different Android Studio version
+    /// Change the selected Android Studio
     Use {
         /// Version to switch to
         version: String,
     },
 
-    /// Show currently installed versions
+    /// List the versions of Android Studio that are installed
     Installed,
 
-    /// Show which version is currently active
+    /// Show which version is currently selected
     Which,
 
-    /// Update the local releases cache
+    /// Update the list of available versions of Android Studio
     Update,
 }

@@ -2,19 +2,19 @@
 source: tests/cli_tests.rs
 expression: stdout
 ---
-astudios is a command-line tool inspired by xcodes, built specifically for managing Android Studio installations on your local machine.
+Manage the Android Studio installations
 
 Usage: astudios <COMMAND>
 
 Commands:
-  list       List available Android Studio versions
+  list       List all versions of Android Studio that are available to install
   download   Download a specific version of Android Studio
-  install    Install a specific Android Studio version to ~/.astudios/versions and /Applications
-  uninstall  Uninstall a specific Android Studio version
-  use        Switch to a different Android Studio version
-  installed  Show currently installed versions
-  which      Show which version is currently active
-  update     Update the local releases cache
+  install    Download and install a specific version of Android Studio
+  uninstall  Uninstall a version of Android Studio
+  use        Change the selected Android Studio
+  installed  List the versions of Android Studio that are installed
+  which      Show which version is currently selected
+  update     Update the list of available versions of Android Studio
   help       Print this message or the help of the given subcommand(s)
 
 Options:
