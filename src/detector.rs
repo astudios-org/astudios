@@ -248,12 +248,11 @@ impl SystemDetector {
         // We want the "Available" column (index 3) from the second line
         if lines.len() >= 2 {
             let fields: Vec<&str> = lines[1].split_whitespace().collect();
-            if fields.len() >= 4 {
-                if let Ok(available_kb) = fields[3].parse::<u64>() {
+            if fields.len() >= 4
+                && let Ok(available_kb) = fields[3].parse::<u64>() {
                     // Convert from KB to bytes
                     return Ok(available_kb * 1024);
                 }
-            }
         }
 
         Err(AstudiosError::General(
