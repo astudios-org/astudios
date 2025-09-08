@@ -218,25 +218,52 @@ impl CommandHandler {
 
         let version_str = &target_item.version;
         let full_name = &target_item.name;
+        let install_dir = directory.unwrap_or("/Applications");
 
+        // Display installation header with clear formatting
         println!();
+        println!("{}", "━".repeat(80).dimmed());
         println!(
-            "{} Installing {} ({})...",
+            "{} {} {}",
             "🚀".blue(),
-            full_name.green().bold(),
-            version_str
+            "Installing Android Studio".bold(),
+            version_str.cyan()
         );
+        println!("   {}", full_name.green());
+        println!("   {} {}", "Target directory:".dimmed(), install_dir.yellow());
+        println!("{}", "━".repeat(80).dimmed());
         println!();
 
         let installer = Installer::new()?;
         installer.install_version_with_checks(version_str, full_name, directory, !skip_checks)?;
 
+        // Display success summary
         println!();
+        println!("{}", "━".repeat(80).dimmed());
         println!(
-            "{} has been installed to {}",
-            full_name.green().bold(),
-            directory.unwrap_or("/Applications"),
+            "{} {} {}",
+            "✅".green(),
+            "Installation Complete".bold().green(),
+            "🎉".green()
         );
+        println!();
+        println!("   {} {}", "Version:".dimmed(), version_str.cyan().bold());
+        println!("   {} {}", "Location:".dimmed(), install_dir.yellow());
+        
+        // Show different information based on installation directory
+        if directory.is_none() || directory == Some("/Applications") {
+            println!("   {} {}", "Symlink:".dimmed(), "/Applications/Android Studio.app".blue());
+            println!();
+            println!("   {} Launch Android Studio from Applications or run:", "💡".blue());
+            println!("   {}", "open \"/Applications/Android Studio.app\"".cyan());
+        } else {
+            println!("   {} {}", "App Bundle:".dimmed(), format!("{}/Android Studio {}.app", install_dir, version_str).blue());
+            println!();
+            println!("   {} Launch Android Studio by running:", "💡".blue());
+            println!("   {}", format!("open \"{}/Android Studio {}.app\"", install_dir, version_str).cyan());
+        }
+        
+        println!("{}", "━".repeat(80).dimmed());
 
         Ok(())
     }

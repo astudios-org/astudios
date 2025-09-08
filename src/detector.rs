@@ -143,43 +143,55 @@ impl SystemDetector {
             .and_then(|x| x.checked_mul(1024))
             .unwrap_or(8 * 1024 * 1024 * 1024); // Default to 8GB if overflow
 
+        let mut space_check_failed = false;
+        let mut insufficient_space = false;
+
         // Check space in install directory
-        if let Ok(space) = Self::get_available_space(install_dir) {
-            if space < required_space {
-                result.add_issue(format!(
-                    "Insufficient disk space in {}. Required: {} GB, Available: {:.1} GB",
-                    install_dir.display(),
-                    Config::min_disk_space_gb(),
-                    space as f64 / (1024.0 * 1024.0 * 1024.0)
-                ));
-                return Ok(false);
+        match Self::get_available_space(install_dir) {
+            Ok(space) => {
+                if space < required_space {
+                    result.add_issue(format!(
+                        "Insufficient disk space in {}. Required: {} GB, Available: {:.1} GB",
+                        install_dir.display(),
+                        Config::min_disk_space_gb(),
+                        space as f64 / (1024.0 * 1024.0 * 1024.0)
+                    ));
+                    insufficient_space = true;
+                }
             }
-        } else {
-            result.add_warning(format!(
-                "Could not determine available disk space in {}",
-                install_dir.display()
-            ));
+            Err(_) => {
+                space_check_failed = true;
+            }
         }
 
-        // Check space in applications directory
-        if let Ok(space) = Self::get_available_space(applications_dir) {
-            if space < required_space {
-                result.add_issue(format!(
-                    "Insufficient disk space in {}. Required: {} GB, Available: {:.1} GB",
-                    applications_dir.display(),
-                    Config::min_disk_space_gb(),
-                    space as f64 / (1024.0 * 1024.0 * 1024.0)
-                ));
-                return Ok(false);
+        // Check space in applications directory (only if different from install directory)
+        if install_dir != applications_dir {
+            match Self::get_available_space(applications_dir) {
+                Ok(space) => {
+                    if space < required_space {
+                        result.add_issue(format!(
+                            "Insufficient disk space in {}. Required: {} GB, Available: {:.1} GB",
+                            applications_dir.display(),
+                            Config::min_disk_space_gb(),
+                            space as f64 / (1024.0 * 1024.0 * 1024.0)
+                        ));
+                        insufficient_space = true;
+                    }
+                }
+                Err(_) => {
+                    space_check_failed = true;
+                }
             }
-        } else {
-            result.add_warning(format!(
-                "Could not determine available disk space in {}",
-                applications_dir.display()
-            ));
         }
 
-        Ok(true)
+        // Only add a warning if we couldn't check space at all and there's no other issue
+        if space_check_failed && !insufficient_space {
+            result.add_warning(
+                "Could not verify available disk space. Ensure you have sufficient space for installation.".to_string()
+            );
+        }
+
+        Ok(!insufficient_space)
     }
 
     /// Get available disk space for a given path (macOS/Unix)
@@ -189,6 +201,64 @@ impl SystemDetector {
             fs::create_dir_all(path)?;
         }
 
+        // Try multiple methods to get disk space, starting with the most reliable
+        
+        // Method 1: Use df command (most reliable on macOS)
+        if let Ok(space) = Self::get_space_via_df(path) {
+            return Ok(space);
+        }
+
+        // Method 2: Use statvfs system call
+        if let Ok(space) = Self::get_space_via_statvfs(path) {
+            return Ok(space);
+        }
+
+        // Method 3: Try with parent directory if the path itself fails
+        if let Some(parent) = path.parent() {
+            if let Ok(space) = Self::get_space_via_df(parent) {
+                return Ok(space);
+            }
+            if let Ok(space) = Self::get_space_via_statvfs(parent) {
+                return Ok(space);
+            }
+        }
+
+        Err(AstudiosError::General(
+            "Could not determine available disk space using any method".to_string(),
+        ))
+    }
+
+    /// Get disk space using df command (most reliable on macOS)
+    fn get_space_via_df(path: &Path) -> Result<u64, AstudiosError> {
+        let output = Command::new("df")
+            .args(["-k", path.to_str().unwrap_or(".")])
+            .output()
+            .map_err(|_| AstudiosError::General("df command failed".to_string()))?;
+
+        if !output.status.success() {
+            return Err(AstudiosError::General("df command returned error".to_string()));
+        }
+
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        let lines: Vec<&str> = output_str.lines().collect();
+        
+        // df output format: Filesystem 1K-blocks Used Available Capacity Mounted on
+        // We want the "Available" column (index 3) from the second line
+        if lines.len() >= 2 {
+            let fields: Vec<&str> = lines[1].split_whitespace().collect();
+            if fields.len() >= 4 {
+                if let Ok(available_kb) = fields[3].parse::<u64>() {
+                    // Convert from KB to bytes
+                    return Ok(available_kb * 1024);
+                }
+            }
+        }
+
+        Err(AstudiosError::General("Could not parse df output".to_string()))
+    }
+
+    /// Get disk space using statvfs system call (fallback method)
+    fn get_space_via_statvfs(path: &Path) -> Result<u64, AstudiosError> {
         // Canonicalize the path to resolve any relative components like "./"
         let canonical_path = match path.canonicalize() {
             Ok(p) => p,
@@ -242,7 +312,7 @@ impl SystemDetector {
             })
         } else {
             Err(AstudiosError::General(
-                "Failed to get disk space".to_string(),
+                "statvfs system call failed".to_string(),
             ))
         }
     }
