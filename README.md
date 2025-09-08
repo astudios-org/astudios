@@ -24,6 +24,11 @@ We welcome community contributions to add support for other operating systems in
 - **Required tools**: `hdiutil`, `codesign`, `cp`, `rm` (usually pre-installed on macOS)
 - **Optional**: `aria2` for faster downloads (install via Homebrew: `brew install aria2`)
 
+### Install from crates.io
+```bash
+cargo install astudios
+```
+
 ### Build from source
 ```bash
 git clone https://github.com/astudios-org/astudios.git
