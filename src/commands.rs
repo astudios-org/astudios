@@ -409,26 +409,39 @@ impl CommandHandler {
             let active_id = active.as_ref().map(|a| a.identifier());
 
             for installation in installations {
-                let indicator = if active_id.as_ref() == Some(&installation.identifier()) {
-                    "✅"
-                } else {
-                    "  "
-                };
-
-                // Use enhanced display name for better version identification
+                let is_active = active_id.as_ref() == Some(&installation.identifier());
+                
+                // Enhanced display name with better formatting
                 let enhanced_name = installation.enhanced_display_name();
                 let detailed_version = installation.extract_detailed_version();
+                
+                // Status indicator with better visual distinction
+                let status_indicator = if is_active {
+                    "✅ [Selected]".green().bold()
+                } else {
+                    "".normal()
+                };
 
-                println!("{indicator} {}", enhanced_name.green().bold());
-                println!(
-                    "       Version: {} | Build: {}",
-                    detailed_version.cyan(),
+                // Main version line with improved formatting and proper spacing
+                if is_active {
+                    println!("   {} {}", 
+                        enhanced_name.cyan().bold(),
+                        status_indicator
+                    );
+                } else {
+                    println!("   {}", enhanced_name.cyan().bold());
+                }
+                
+                // Version and build info with better alignment and spacing
+                println!("        Version: {} | Build: {}", 
+                    detailed_version.green(),
                     installation.identifier().blue()
                 );
-                println!(
-                    "       Path: {}",
-                    installation.path.display().to_string().dimmed()
-                );
+                
+                // Path with proper formatting
+                let path_str = installation.path.display().to_string();
+                println!("        Path: {}", path_str.dimmed());
+                
                 println!();
             }
         }
