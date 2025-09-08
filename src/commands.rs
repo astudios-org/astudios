@@ -230,7 +230,11 @@ impl CommandHandler {
             version_str.cyan()
         );
         println!("   {}", full_name.green());
-        println!("   {} {}", "Target directory:".dimmed(), install_dir.yellow());
+        println!(
+            "   {} {}",
+            "Target directory:".dimmed(),
+            install_dir.yellow()
+        );
         println!("{}", "━".repeat(80).dimmed());
         println!();
 
@@ -249,20 +253,38 @@ impl CommandHandler {
         println!();
         println!("   {} {}", "Version:".dimmed(), version_str.cyan().bold());
         println!("   {} {}", "Location:".dimmed(), install_dir.yellow());
-        
+
         // Show different information based on installation directory
         if directory.is_none() || directory == Some("/Applications") {
-            println!("   {} {}", "Symlink:".dimmed(), "/Applications/Android Studio.app".blue());
+            println!(
+                "   {} {}",
+                "Symlink:".dimmed(),
+                "/Applications/Android Studio.app".blue()
+            );
             println!();
-            println!("   {} Launch Android Studio from Applications or run:", "💡".blue());
+            println!(
+                "   {} Launch Android Studio from Applications or run:",
+                "💡".blue()
+            );
             println!("   {}", "open \"/Applications/Android Studio.app\"".cyan());
         } else {
-            println!("   {} {}", "App Bundle:".dimmed(), format!("{}/Android Studio {}.app", install_dir, version_str).blue());
+            println!(
+                "   {} {}",
+                "App Bundle:".dimmed(),
+                format!("{}/Android Studio {}.app", install_dir, version_str).blue()
+            );
             println!();
             println!("   {} Launch Android Studio by running:", "💡".blue());
-            println!("   {}", format!("open \"{}/Android Studio {}.app\"", install_dir, version_str).cyan());
+            println!(
+                "   {}",
+                format!(
+                    "open \"{}/Android Studio {}.app\"",
+                    install_dir, version_str
+                )
+                .cyan()
+            );
         }
-        
+
         println!("{}", "━".repeat(80).dimmed());
 
         Ok(())
@@ -410,11 +432,11 @@ impl CommandHandler {
 
             for installation in installations {
                 let is_active = active_id.as_ref() == Some(&installation.identifier());
-                
+
                 // Enhanced display name with better formatting
                 let enhanced_name = installation.enhanced_display_name();
                 let detailed_version = installation.extract_detailed_version();
-                
+
                 // Status indicator with better visual distinction
                 let status_indicator = if is_active {
                     "✅ [Selected]".green().bold()
@@ -424,24 +446,22 @@ impl CommandHandler {
 
                 // Main version line with improved formatting and proper spacing
                 if is_active {
-                    println!("   {} {}", 
-                        enhanced_name.cyan().bold(),
-                        status_indicator
-                    );
+                    println!("   {} {}", enhanced_name.cyan().bold(), status_indicator);
                 } else {
                     println!("   {}", enhanced_name.cyan().bold());
                 }
-                
+
                 // Version and build info with better alignment and spacing
-                println!("        Version: {} | Build: {}", 
+                println!(
+                    "        Version: {} | Build: {}",
                     detailed_version.green(),
                     installation.identifier().blue()
                 );
-                
+
                 // Path with proper formatting
                 let path_str = installation.path.display().to_string();
                 println!("        Path: {}", path_str.dimmed());
-                
+
                 println!();
             }
         }

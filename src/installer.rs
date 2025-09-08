@@ -74,7 +74,11 @@ impl Installer {
 
         // Run prerequisite checks if enabled
         if run_checks {
-            println!("{} {} Checking system requirements...", "[1/5]".bold().blue(), "🔍".blue());
+            println!(
+                "{} {} Checking system requirements...",
+                "[1/5]".bold().blue(),
+                "🔍".blue()
+            );
             let detection_result =
                 SystemDetector::detect_system_requirements(&self.install_dir, &target_dir)?;
 
@@ -94,8 +98,14 @@ impl Installer {
                     println!("        • {}", issue.red());
                 }
                 println!();
-                println!("      {} Please resolve the above issues and try again.", "💡".blue());
-                println!("      {} Use --skip-checks to bypass these checks (not recommended)", "⚠️".yellow());
+                println!(
+                    "      {} Please resolve the above issues and try again.",
+                    "💡".blue()
+                );
+                println!(
+                    "      {} Use --skip-checks to bypass these checks (not recommended)",
+                    "⚠️".yellow()
+                );
 
                 return Err(AstudiosError::PrerequisiteNotMet(
                     "System requirements not met".to_string(),
@@ -109,18 +119,25 @@ impl Installer {
         let download_path = self.download_version(version, full_name)?;
         let extracted_path = self.extract_archive(&download_path, version)?;
         let app_path = self.move_to_applications(version, &extracted_path, custom_dir)?;
-        
+
         // Only create symlink if installing to the default Applications directory
         if custom_dir.is_none() || custom_dir == Some("/Applications") {
             self.create_symlink(&app_path)?;
         } else {
-            println!("{} {} Skipping symlink creation for custom directory", "[5/5]".bold().blue(), "🔗".blue());
-            println!("      {} Custom installation directory detected", "ℹ️".blue());
+            println!(
+                "{} {} Skipping symlink creation for custom directory",
+                "[5/5]".bold().blue(),
+                "🔗".blue()
+            );
+            println!(
+                "      {} Custom installation directory detected",
+                "ℹ️".blue()
+            );
         }
-        
+
         // Clean up temporary files silently
         let _ = self.cleanup_files(&download_path, &extracted_path);
-        
+
         // Verify installation silently
         self.verify_installation(&app_path)?;
         Ok(())
@@ -163,13 +180,25 @@ impl Installer {
         if download_path.exists() {
             let metadata = fs::metadata(&download_path)?;
             if metadata.len() > 0 {
-                println!("{} {} File already downloaded", "[2/5]".bold().blue(), "📦".blue());
-                println!("      {} {}", "Location:".dimmed(), download_path.display().to_string().cyan());
+                println!(
+                    "{} {} File already downloaded",
+                    "[2/5]".bold().blue(),
+                    "📦".blue()
+                );
+                println!(
+                    "      {} {}",
+                    "Location:".dimmed(),
+                    download_path.display().to_string().cyan()
+                );
                 return Ok(download_path);
             }
         }
 
-        println!("{} {} Downloading Android Studio...", "[2/5]".bold().blue(), "📥".blue());
+        println!(
+            "{} {} Downloading Android Studio...",
+            "[2/5]".bold().blue(),
+            "📥".blue()
+        );
         println!("      {} {}", "Version:".dimmed(), version.cyan());
         println!("      {} {}", "Size:".dimmed(), download.size.yellow());
 
@@ -222,7 +251,11 @@ impl Installer {
         let temp_mount = tempfile::tempdir()?;
         let mount_point = temp_mount.path();
 
-        println!("{} {} Mounting disk image...", "[3/5]".bold().blue(), "💿".blue());
+        println!(
+            "{} {} Mounting disk image...",
+            "[3/5]".bold().blue(),
+            "💿".blue()
+        );
 
         let output = Command::new("hdiutil")
             .args([
@@ -321,7 +354,11 @@ impl Installer {
             Ok(output) => {
                 if !output.status.success() {
                     let error_msg = String::from_utf8_lossy(&output.stderr);
-                    println!("      {} Failed to unmount disk image: {}", "⚠️".yellow(), error_msg.trim());
+                    println!(
+                        "      {} Failed to unmount disk image: {}",
+                        "⚠️".yellow(),
+                        error_msg.trim()
+                    );
                 } else {
                     println!("      {} Disk image unmounted", "✅".green());
                 }
@@ -368,8 +405,16 @@ impl Installer {
             "Android Studio.app not found in extracted files".to_string(),
         ))?;
 
-        println!("{} {} Installing to Applications...", "[4/5]".bold().blue(), "📲".blue());
-        println!("      {} {}", "Target:".dimmed(), app_path.display().to_string().cyan());
+        println!(
+            "{} {} Installing to Applications...",
+            "[4/5]".bold().blue(),
+            "📲".blue()
+        );
+        println!(
+            "      {} {}",
+            "Target:".dimmed(),
+            app_path.display().to_string().cyan()
+        );
 
         // Remove existing installation if it exists
         if app_path.exists() {
@@ -457,7 +502,11 @@ impl Installer {
     fn create_symlink(&self, app_path: &Path) -> Result<(), AstudiosError> {
         let symlink_path = self.applications_dir.join("Android Studio.app");
 
-        println!("{} {} Creating symlink...", "[5/5]".bold().blue(), "🔗".blue());
+        println!(
+            "{} {} Creating symlink...",
+            "[5/5]".bold().blue(),
+            "🔗".blue()
+        );
 
         // Remove existing symlink or file/directory
         if symlink_path.exists() || symlink_path.is_symlink() {
@@ -497,7 +546,11 @@ impl Installer {
         match std::os::unix::fs::symlink(app_path, &symlink_path) {
             Ok(_) => {
                 println!("      {} Symlink created successfully", "✅".green());
-                println!("      {} {}", "Link:".dimmed(), symlink_path.display().to_string().blue());
+                println!(
+                    "      {} {}",
+                    "Link:".dimmed(),
+                    symlink_path.display().to_string().blue()
+                );
                 Ok(())
             }
             Err(e) => Err(AstudiosError::Installation(format!(

@@ -202,7 +202,7 @@ impl SystemDetector {
         }
 
         // Try multiple methods to get disk space, starting with the most reliable
-        
+
         // Method 1: Use df command (most reliable on macOS)
         if let Ok(space) = Self::get_space_via_df(path) {
             return Ok(space);
@@ -236,12 +236,14 @@ impl SystemDetector {
             .map_err(|_| AstudiosError::General("df command failed".to_string()))?;
 
         if !output.status.success() {
-            return Err(AstudiosError::General("df command returned error".to_string()));
+            return Err(AstudiosError::General(
+                "df command returned error".to_string(),
+            ));
         }
 
         let output_str = String::from_utf8_lossy(&output.stdout);
         let lines: Vec<&str> = output_str.lines().collect();
-        
+
         // df output format: Filesystem 1K-blocks Used Available Capacity Mounted on
         // We want the "Available" column (index 3) from the second line
         if lines.len() >= 2 {
@@ -254,7 +256,9 @@ impl SystemDetector {
             }
         }
 
-        Err(AstudiosError::General("Could not parse df output".to_string()))
+        Err(AstudiosError::General(
+            "Could not parse df output".to_string(),
+        ))
     }
 
     /// Get disk space using statvfs system call (fallback method)
