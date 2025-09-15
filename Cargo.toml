@@ -29,14 +29,14 @@ indicatif = "0.18"
 colored = "3.0"
 dirs = "6.0"
 zip = "5.0"
-tempfile = "3.8"
+tempfile = "3.22"
 plist = "1.7"
 
 [dev-dependencies]
 insta = { version = "1.43", features = ["yaml"] }
 assert_cmd = "2.0"
 predicates = "3.0"
-tempfile = "3.8"
+tempfile = "3.22"
 strip-ansi-escapes = "0.2"
 
 [profile.release]
