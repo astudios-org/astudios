@@ -30,7 +30,7 @@ colored = "3.0"
 dirs = "6.0"
 zip = "5.1"
 tempfile = "3.22"
-plist = "1.7"
+plist = "1.8"
 
 [dev-dependencies]
 insta = { version = "1.43", features = ["yaml"] }
