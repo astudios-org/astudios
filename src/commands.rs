@@ -63,12 +63,8 @@ impl CommandHandler {
         limit: Option<usize>,
         all_platforms: bool,
     ) -> Result<(), AstudiosError> {
-        let reporter = ProgressReporter::new(true);
-
         let lister = AndroidStudioLister::new()?;
         let releases = lister.get_releases()?;
-
-        reporter.clear();
 
         let mut items = lister.filter_by_channel(releases, release, beta, canary);
 

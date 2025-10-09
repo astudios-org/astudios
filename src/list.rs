@@ -3,8 +3,8 @@ use crate::{
     config::Config,
     error::AstudiosError,
     model::{AndroidStudio, AndroidStudioReleasesList},
-    progress::ProgressReporter,
 };
+use std::io::Write;
 use std::{
     fs,
     path::PathBuf,
@@ -36,18 +36,21 @@ impl AndroidStudioLister {
 
         // Check if cache exists and is valid
         if let Some(cached) = self.load_cached_releases(&cache_path)? {
+            // Show brief feedback when using cached data (using stderr for immediate display)
+            eprintln!("ℹ️  Loading Android Studio versions from cache...");
             return Ok(cached);
         }
 
-        // Fetch fresh data
-        let reporter = ProgressReporter::new(true);
+        // Fetch fresh data with progress indication
+        eprintln!("🌐 Fetching Android Studio releases from JetBrains...");
+        std::io::stderr().flush().ok();
 
         let client = ApiClient::new()?;
         let content = client.fetch_releases()?;
 
         // Cache the data
         self.save_releases_to_cache(&cache_path, &content)?;
-        reporter.finish_with_success("Releases fetched successfully");
+        eprintln!("✅ Successfully fetched {} releases", content.items.len());
 
         Ok(content)
     }
