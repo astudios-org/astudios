@@ -34,7 +34,7 @@ plist = "1.8"
 
 [dev-dependencies]
 insta = { version = "1.43", features = ["yaml"] }
-assert_cmd = "2.0"
+assert_cmd = "2.1"
 predicates = "3.0"
 tempfile = "3.23"
 strip-ansi-escapes = "0.2"
