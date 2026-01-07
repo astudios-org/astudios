@@ -33,7 +33,7 @@ tempfile = "3.24"
 plist = "1.8"
 
 [dev-dependencies]
-insta = { version = "1.44", features = ["yaml"] }
+insta = { version = "1.46", features = ["yaml"] }
 assert_cmd = "2.0"
 predicates = "3.0"
 tempfile = "3.24"
