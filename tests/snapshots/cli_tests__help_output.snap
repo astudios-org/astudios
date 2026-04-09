@@ -15,6 +15,7 @@ Commands:
   installed  List the versions of Android Studio that are installed
   which      Show which version is currently selected
   update     Update the list of available versions of Android Studio
+  open       Open a project with the currently selected Android Studio
   help       Print this message or the help of the given subcommand(s)
 
 Options:

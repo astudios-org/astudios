@@ -1,0 +1,13 @@
+---
+source: tests/cli_tests.rs
+expression: stdout
+---
+Open a project with the currently selected Android Studio
+
+Usage: astudios open [PATH]
+
+Arguments:
+  [PATH]  Path to the project to open (defaults to current directory) [default: .]
+
+Options:
+  -h, --help  Print help

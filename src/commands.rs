@@ -9,7 +9,7 @@ use astudios::{
     progress::ProgressReporter,
 };
 use colored::Colorize;
-use std::{fs, path::Path, path::PathBuf};
+use std::{fs, path::Path, path::PathBuf, process::Command};
 
 /// Handles all CLI commands with proper error handling and user feedback
 pub struct CommandHandler;
@@ -52,6 +52,7 @@ impl CommandHandler {
             Commands::Installed => Self::handle_installed(),
             Commands::Which => Self::handle_which(),
             Commands::Update => Self::handle_update(),
+            Commands::Open { path } => Self::handle_open(&path),
         }
     }
 
@@ -491,6 +492,63 @@ impl CommandHandler {
                 println!();
                 println!("Use 'astudios install <version>' to install a version");
             }
+        }
+
+        Ok(())
+    }
+
+    /// Handle the open command to open a project with the current Android Studio
+    fn handle_open(path: &str) -> Result<(), AstudiosError> {
+        let installer = Installer::new()?;
+
+        let app_path = match installer.get_active_studio()? {
+            Some(studio) => studio.path,
+            None => {
+                // Fall back to the default symlink path
+                let default_path = PathBuf::from("/Applications/Android Studio.app");
+                if default_path.exists() {
+                    default_path
+                } else {
+                    println!("{} No Android Studio installation found", "⚠️".yellow());
+                    println!();
+                    println!("Use 'astudios install <version>' to install a version");
+                    return Ok(());
+                }
+            }
+        };
+
+        let project_path = PathBuf::from(path);
+        let absolute_path = if project_path.is_absolute() {
+            project_path
+        } else {
+            std::env::current_dir()?.join(project_path)
+        };
+
+        if !absolute_path.exists() {
+            return Err(AstudiosError::General(format!(
+                "Path does not exist: {}",
+                absolute_path.display()
+            )));
+        }
+
+        println!(
+            "{} Opening {} with {}...",
+            "🚀".blue(),
+            absolute_path.display().to_string().cyan(),
+            app_path.display().to_string().green()
+        );
+
+        let status = Command::new("open")
+            .arg("-a")
+            .arg(&app_path)
+            .arg(&absolute_path)
+            .status()
+            .map_err(|e| AstudiosError::General(format!("Failed to launch Android Studio: {e}")))?;
+
+        if !status.success() {
+            return Err(AstudiosError::General(
+                "Failed to open project with Android Studio".to_string(),
+            ));
         }
 
         Ok(())

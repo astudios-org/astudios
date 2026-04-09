@@ -123,6 +123,18 @@ fn test_update_help() {
     assert_snapshot!("update_help_output", stdout);
 }
 
+/// Test open command help
+#[test]
+fn test_open_help() {
+    let mut cmd = Command::cargo_bin("astudios").unwrap();
+    let output = cmd.args(["open", "--help"]).output().unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert_snapshot!("open_help_output", stdout);
+}
+
 /// Test invalid command error
 #[test]
 fn test_invalid_command() {

@@ -93,4 +93,11 @@ pub enum Commands {
 
     /// Update the list of available versions of Android Studio
     Update,
+
+    /// Open a project with the currently selected Android Studio
+    Open {
+        /// Path to the project to open (defaults to current directory)
+        #[arg(default_value = ".")]
+        path: String,
+    },
 }
